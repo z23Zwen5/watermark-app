@@ -1,0 +1,28 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# VSCode 工作区设置
+*.code-workspace
+.vscode/
+
+# 打包生成的 build / dist 目录（pyinstaller）
+build/
+dist/
+*.spec
+
+# 临时/中间产物
+*.log
+*.tmp
+*.bak
+
+# ico 图标文件（可选忽略）
+*.ico
+
+# Mac/Linux 隐藏文件
+.DS_Store
+
+# Windows 缓存
+Thumbs.db
