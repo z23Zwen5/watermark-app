@@ -19,7 +19,7 @@ dist/
 *.bak
 
 # ico 图标文件（可选忽略）
-*.ico
+#*.ico
 
 # Mac/Linux 隐藏文件
 .DS_Store
