@@ -7,7 +7,7 @@ import json
 class WatermarkApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Watermark App")
+        self.root.title("Watermark App v1.2 (Configuration Enhanced)")
         self.root.configure(bg='#FAFAFA')  # Instagram-style background
         
         # Set minimum window size
@@ -15,6 +15,24 @@ class WatermarkApp:
         
         # Initialize path memory
         self.config_file = "watermark_app_config.json"
+        
+        # Initialize variables first
+        self.images = []
+        self.watermark = None
+        self.image_paths = []
+        self.save_directory = None
+        self.last_used_directory = None
+        self.last_watermark_directory = None
+        self.last_images_directory = None
+        
+        # Initialize UI variables
+        self.opacity_slider = None
+        self.stretch_var = None
+        
+        # Debounce timer for opacity changes
+        self.opacity_save_timer = None
+        
+        # Load configuration before creating UI
         self.load_config()
         
         # Main container with padding
@@ -24,7 +42,7 @@ class WatermarkApp:
         # Title
         title_label = tk.Label(
             main_container,
-            text="Watermark App",
+            text="Watermark App v1.2",
             font=('Helvetica', 24, 'bold'),
             fg='#262626',
             bg='#FAFAFA'
@@ -98,19 +116,25 @@ class WatermarkApp:
             opacity_frame,
             from_=0,
             to=100,
-            orient=tk.HORIZONTAL
+            orient=tk.HORIZONTAL,
+            command=self.on_opacity_change
         )
-        self.opacity_slider.set(50)
+        # Set default value from config
+        default_opacity = getattr(self, 'last_opacity', 50)
+        self.opacity_slider.set(default_opacity)
         self.opacity_slider.pack(fill=tk.X, pady=(5, 0))
 
         # Stretch option
         self.stretch_var = tk.BooleanVar()
-        self.stretch_var.set(False)
+        # Set default value from config
+        default_stretch = getattr(self, 'last_stretch', False)
+        self.stretch_var.set(default_stretch)
         self.stretch_checkbox = ttk.Checkbutton(
             settings_frame,
             text="Stretch watermark to fit image",
             variable=self.stretch_var,
-            style='Switch.TCheckbutton'
+            style='Switch.TCheckbutton',
+            command=self.on_stretch_change
         )
         self.stretch_checkbox.pack(pady=10)
 
@@ -151,20 +175,115 @@ class WatermarkApp:
         )
         self.apply_watermark_btn.pack(fill=tk.X, pady=(20, 0))
 
-        # Initialize variables
-        self.images = []
-        self.watermark = None
-        self.image_paths = []
-        self.save_directory = None
-        self.last_used_directory = None
-        self.last_watermark_directory = None
-        self.last_images_directory = None
-
         # Configure style for the switch
         style = ttk.Style()
         style.configure('Switch.TCheckbutton', 
                        background='#FAFAFA',
                        font=('Helvetica', 10))
+
+        # Update UI with loaded configuration
+        self.update_save_dir_label()
+        
+        # Auto-load last used files if they exist
+        self.auto_load_last_files()
+
+    def load_config(self):
+        """加载配置文件，记住上次使用的路径和设置"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    # 路径配置
+                    self.last_used_directory = config.get('last_used_directory')
+                    self.save_directory = config.get('save_directory')
+                    self.last_watermark_directory = config.get('last_watermark_directory')
+                    self.last_images_directory = config.get('last_images_directory')
+                    
+                    # 用户设置配置
+                    self.last_opacity = config.get('last_opacity', 50)
+                    self.last_stretch = config.get('last_stretch', False)
+                    
+                    # 文件路径记忆
+                    self.last_watermark_file = config.get('last_watermark_file')
+                    self.last_images_files = config.get('last_images_files', [])
+                    
+                    print(f"✅ 配置加载成功: 透明度={self.last_opacity}, 拉伸={self.last_stretch}")
+            else:
+                # 默认配置
+                self.last_used_directory = None
+                self.save_directory = None
+                self.last_watermark_directory = None
+                self.last_images_directory = None
+                self.last_opacity = 50
+                self.last_stretch = False
+                self.last_watermark_file = None
+                self.last_images_files = []
+                print("📝 使用默认配置")
+        except Exception as e:
+            print(f"❌ 加载配置文件时出错: {e}")
+            # 使用默认配置
+            self.last_used_directory = None
+            self.save_directory = None
+            self.last_watermark_directory = None
+            self.last_images_directory = None
+            self.last_opacity = 50
+            self.last_stretch = False
+            self.last_watermark_file = None
+            self.last_images_files = []
+
+    def save_config(self):
+        """保存配置文件，记住当前使用的路径和设置"""
+        try:
+            config = {
+                # 路径配置
+                'last_used_directory': self.last_used_directory,
+                'save_directory': self.save_directory,
+                'last_watermark_directory': self.last_watermark_directory,
+                'last_images_directory': self.last_images_directory,
+                
+                # 用户设置配置
+                'last_opacity': self.opacity_slider.get() if self.opacity_slider else self.last_opacity,
+                'last_stretch': self.stretch_var.get() if self.stretch_var else self.last_stretch,
+                
+                # 文件路径记忆
+                'last_watermark_file': self.last_watermark_file,
+                'last_images_files': self.last_images_files
+            }
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            print(f"💾 配置保存成功")
+        except Exception as e:
+            print(f"❌ 保存配置文件时出错: {e}")
+
+    def on_opacity_change(self, value):
+        """透明度滑块变化时保存配置"""
+        if self.opacity_save_timer:
+            self.root.after_cancel(self.opacity_save_timer)
+        self.opacity_save_timer = self.root.after(1000, self.save_config)
+
+    def on_stretch_change(self):
+        """拉伸选项变化时保存配置"""
+        self.save_config()
+
+    def auto_load_last_files(self):
+        """自动加载上次使用的文件"""
+        try:
+            # 自动加载上次的水印文件
+            if self.last_watermark_file and os.path.exists(self.last_watermark_file):
+                self.watermark = Image.open(self.last_watermark_file).convert("RGBA")
+                print(f"🎨 自动加载水印: {self.last_watermark_file}")
+            
+            # 自动加载上次的图片文件
+            if self.last_images_files:
+                valid_files = [f for f in self.last_images_files if os.path.exists(f)]
+                if valid_files:
+                    self.image_paths = valid_files
+                    self.images = [Image.open(file_path) for file_path in valid_files]
+                    print(f"🖼️ 自动加载图片: {len(valid_files)}张")
+                else:
+                    print("⚠️ 上次的图片文件不存在，跳过自动加载")
+        except Exception as e:
+            print(f"⚠️ 自动加载文件时出错: {e}")
 
     def upload_images(self):
         self.root.lift()  # Bring window to top
@@ -178,9 +297,10 @@ class WatermarkApp:
         if file_paths:
             self.image_paths = file_paths
             self.images = [Image.open(file_path) for file_path in file_paths]
-            # 记住图片文件夹路径
+            # 记住图片文件夹路径和文件路径
             self.last_images_directory = os.path.dirname(file_paths[0])
             self.last_used_directory = self.last_images_directory
+            self.last_images_files = list(file_paths)  # 记住具体文件路径
             if not self.save_directory:
                 self.save_directory = self.last_used_directory
             self.update_save_dir_label()
@@ -198,8 +318,9 @@ class WatermarkApp:
         )
         if file_path:
             self.watermark = Image.open(file_path).convert("RGBA")
-            # 记住水印文件夹路径
+            # 记住水印文件夹路径和文件路径
             self.last_watermark_directory = os.path.dirname(file_path)
+            self.last_watermark_file = file_path  # 记住具体文件路径
             # 保存配置
             self.save_config()
 
@@ -283,42 +404,6 @@ class WatermarkApp:
             
             output.save(output_path)
             print(f"Saved: {output_path}")
-
-    def load_config(self):
-        """加载配置文件，记住上次使用的路径"""
-        try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    self.last_used_directory = config.get('last_used_directory')
-                    self.save_directory = config.get('save_directory')
-                    self.last_watermark_directory = config.get('last_watermark_directory')
-                    self.last_images_directory = config.get('last_images_directory')
-            else:
-                self.last_used_directory = None
-                self.save_directory = None
-                self.last_watermark_directory = None
-                self.last_images_directory = None
-        except Exception as e:
-            print(f"加载配置文件时出错: {e}")
-            self.last_used_directory = None
-            self.save_directory = None
-            self.last_watermark_directory = None
-            self.last_images_directory = None
-
-    def save_config(self):
-        """保存配置文件，记住当前使用的路径"""
-        try:
-            config = {
-                'last_used_directory': self.last_used_directory,
-                'save_directory': self.save_directory,
-                'last_watermark_directory': self.last_watermark_directory,
-                'last_images_directory': self.last_images_directory
-            }
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"保存配置文件时出错: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
