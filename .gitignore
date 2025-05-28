@@ -1,28 +1,42 @@
-# Python 缓存
+# Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# VSCode 工作区设置
-*.code-workspace
-.vscode/
-
-# 打包生成的 build / dist 目录（pyinstaller）
+# PyInstaller
 build/
 dist/
 *.spec
 
-# 临时/中间产物
-*.log
-*.tmp
-*.bak
+# 应用配置文件（包含个人路径信息）
+watermark_app_config.json
 
-# ico 图标文件（可选忽略）
-#*.ico
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Mac/Linux 隐藏文件
+# OS
 .DS_Store
-
-# Windows 缓存
 Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.temp
+*.log
+
+# 测试文件
+test_*.py
+*_test.py
+test_images/
+test_watermarks/

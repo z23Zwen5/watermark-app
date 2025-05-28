@@ -1,0 +1,11 @@
+# 水印应用 v1.1 优化版依赖
+# WatermarkApp v1.1 Optimized Dependencies
+
+# 图像处理库
+Pillow>=8.0.0
+
+# 数值计算库（性能优化核心）
+numpy>=1.20.0
+
+# 注意：tkinter是Python标准库，无需单独安装
+# Note: tkinter is part of Python standard library, no separate installation needed 
