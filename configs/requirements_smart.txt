@@ -1,0 +1,18 @@
+# 智能水印应用依赖包
+# Smart WatermarkApp Dependencies v1.3
+
+# 图像处理库
+Pillow>=8.0.0
+
+# 数值计算库（智能颜色算法需要）
+numpy>=1.20.0
+
+# 打包工具（开发时需要）
+pyinstaller>=5.0.0
+
+# 注意：tkinter是Python标准库，无需单独安装
+# Note: tkinter is part of Python standard library
+
+# 新增依赖说明：
+# - numpy: 用于快速颜色处理和计算
+# - math: 标准库，用于颜色距离计算 
