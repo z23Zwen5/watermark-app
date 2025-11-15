@@ -1,157 +1,230 @@
-# 🚀 水印应用 WatermarkApp
+# 🎨 Multi-Layer Watermark App
 
-一个高性能的批量图片水印添加工具，支持透明水印、批量处理和**智能配置记忆**。
+> 专业的多图层水印应用 | 支持 Photoshop 混合模式 + 智能颜色适应
 
-## ⚡ 性能亮点
-
-- **30倍性能提升** - v1.1优化版相比v1.0提升30倍以上
-- **96.7%时间节省** - 从分钟级处理降至秒级
-- **智能配置记忆** - v1.2自动记住所有设置和文件路径
-- **自动文件加载** - 启动即恢复上次工作状态
-- **并行处理** - 充分利用多核CPU
-- **智能缓存** - 避免重复计算
-
-## 📁 项目结构
-
-```
-watermarkApp/
-├── src/                          # 源代码
-│   ├── watermark_app.py         # v1.0 基础版本
-│   └── watermark_app_optimized.py # v1.1/v1.2 优化版本
-├── docs/                         # 文档
-│   ├── VERSION_HISTORY.md       # 版本历史
-│   ├── CONFIG_FEATURES.md       # 配置功能说明
-│   ├── OPTIMIZATION_GUIDE.md    # 优化指南
-│   ├── PERFORMANCE_SUMMARY.md   # 性能报告
-│   └── USAGE_EXAMPLE.md         # 使用示例
-├── releases/                     # 发布版本
-│   ├── WatermarkApp_v1.1_优化版_分发包.zip
-│   ├── WatermarkApp_v1.1_Distribution/
-│   └── 分发包说明.txt
-├── assets/                       # 资源文件
-│   └── watermark_app_icon.ico   # 应用图标
-├── build/                        # 构建文件
-│   ├── *.spec                   # PyInstaller配置
-│   └── ...
-├── dist/                         # 编译输出
-│   └── *.exe                    # 可执行文件
-├── requirements.txt              # 依赖包
-├── .gitignore                   # Git忽略文件
-└── README.md                    # 项目说明
-```
-
-## 🚀 快速开始
-
-### 方式一：使用预编译版本（推荐）
-1. 下载 `releases/WatermarkApp_v1.1_优化版_分发包.zip`
-2. 解压并运行 `WatermarkApp_v1.1_Optimized.exe`
-
-### 方式二：从源代码运行
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 运行v1.2配置增强版（推荐）
-python src/watermark_app_optimized.py
-
-# 或运行基础版本
-python src/watermark_app.py
-
-# 或使用批处理文件（Windows）
-run_optimized.bat  # 优化版本
-run_basic.bat      # 基础版本
-```
-
-## 🆕 v1.2 配置增强功能
-
-### 🧠 智能记忆系统
-- **完整设置记忆** - 透明度、拉伸选项、并行处理等
-- **文件路径记忆** - 分别记住水印、图片、保存目录
-- **自动文件加载** - 启动时自动加载上次使用的文件
-- **实时保存** - 每次更改立即保存配置
-
-### 🎯 用户体验提升
-```
-第一次使用:
-选择文件 → 调整设置 → 处理图片 → 自动保存配置
-
-第二次使用:
-启动应用 → 自动恢复所有设置 → 直接处理 ✨
-```
-
-### 📊 配置功能对比
-
-| 功能 | v1.0/v1.1 | v1.2 配置增强版 |
-|------|-----------|----------------|
-| 路径记忆 | 基础支持 | **完整支持** |
-| 设置记忆 | ❌ | **✅ 全部记忆** |
-| 文件自动加载 | ❌ | **✅ 智能加载** |
-| 实时保存 | ❌ | **✅ 即时保存** |
-
-## 📊 版本对比
-
-| 特性 | v1.0 基础版 | v1.1 优化版 | v1.2 配置增强版 |
-|------|------------|------------|----------------|
-| 性能 | 逐像素处理 | numpy向量化 | numpy向量化 |
-| 并发 | 单线程 | 多线程并行 | 多线程并行 |
-| 缓存 | 无缓存 | 智能缓存 | 智能缓存 |
-| UI | 处理时冻结 | 异步响应 | 异步响应 |
-| 进度 | 无反馈 | 实时进度条 | 实时进度条 |
-| **配置记忆** | **基础** | **基础** | **🆕 完整智能** |
-| **文件记忆** | **❌** | **❌** | **🆕 自动加载** |
-
-## 🎯 主要功能
-
-- ✅ 批量添加透明水印
-- ✅ 水印透明度可调 (0-100%)
-- ✅ 水印拉伸选项
-- ✅ **智能配置记忆** 🆕
-- ✅ **自动文件加载** 🆕
-- ✅ 并行处理支持
-- ✅ 实时进度显示
-- ✅ 现代化UI设计
-
-## 📚 文档
-
-- [配置功能说明](docs/CONFIG_FEATURES.md) - **🆕 详细的配置记忆功能介绍**
-- [版本历史](docs/VERSION_HISTORY.md) - 完整版本更新记录
-- [优化指南](docs/OPTIMIZATION_GUIDE.md) - 性能优化使用指南
-- [性能报告](docs/PERFORMANCE_SUMMARY.md) - 详细性能测试结果
-- [使用示例](docs/USAGE_EXAMPLE.md) - 详细使用教程
-
-## 🔧 开发
-
-### 打包为exe
-```bash
-# v1.2配置增强版
-pyinstaller --onefile --windowed --icon=assets/watermark_app_icon.ico src/watermark_app_optimized.py
-
-# 基础版本
-pyinstaller --onefile --windowed --icon=assets/watermark_app_icon.ico src/watermark_app.py
-```
-
-## 📈 性能数据
-
-| 测试场景 | v1.0 耗时 | v1.1/v1.2 耗时 | 性能提升 |
-|---------|----------|----------------|----------|
-| 3张高清图片 | 8.871秒 | 0.289秒 | **30.67倍** |
-| 5张标清图片 | 6.405秒 | 0.226秒 | **28.34倍** |
-| 2张4K图片 | 24.876秒 | 0.808秒 | **30.79倍** |
-
-## 🎉 技术栈
-
-- **Python 3.7+** - 主要开发语言
-- **tkinter** - GUI框架
-- **Pillow (PIL)** - 图像处理
-- **numpy** - 数值计算优化
-- **PyInstaller** - 打包工具
-
-## 🎯 推荐使用
-
-- **🏆 日常使用**: v1.2 配置增强版 - 最佳用户体验
-- **⚡ 高性能需求**: v1.1/v1.2 优化版 - 30倍性能提升  
-- **💧 简单需求**: v1.0 基础版 - 轻量级选择
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](docs/VERSION_1.5_RELEASE_NOTES.md)
+[![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 ---
 
-**享受30倍性能提升 + 智能配置记忆的水印处理体验！** ⚡🧠
+## ✨ 功能亮点
+
+🎨 **多图层系统** - 支持无限制添加水印图层，自由组合
+🌈 **混合模式** - 4种专业 Photoshop 混合模式（Normal/Overlay/Screen/Soft Light）
+🎚️ **精细控制** - 每层独立调整不透明度和混合效果
+🧠 **智能适应** - 自动检测背景颜色并调整水印颜色
+⚡ **高性能** - 三种性能模式，支持批量处理
+💾 **自动保存** - 图层配置自动保存，下次启动恢复
+
+---
+
+## 🚀 快速开始
+
+### 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+### 启动应用
+
+**Windows 用户**
+```bash
+run_multilayer.bat
+```
+
+**macOS/Linux 用户**
+```bash
+chmod +x run_multilayer.sh
+./run_multilayer.sh
+```
+
+**或直接运行**
+```bash
+python src/watermark_app_multilayer.py
+```
+
+---
+
+## 📖 使用流程
+
+### 1️⃣ 上传图片
+点击 `Upload Images` 选择待处理的图片
+
+### 2️⃣ 添加水印图层
+- 点击 `+ Add Layer` 选择水印
+- 设置**混合模式**（Normal/Overlay/Screen/Soft Light）
+- 调整**不透明度**（0-100%）
+
+### 3️⃣ 管理图层
+- **编辑**: 选中图层 → `✎ Edit Layer`
+- **删除**: 选中图层 → `× Remove`
+- **排序**: `↑ Up` / `↓ Down`
+
+### 4️⃣ 应用水印
+点击 `🚀 Apply Multi-Layer Watermark` 完成处理
+
+---
+
+## 🎨 混合模式说明
+
+| 模式 | 用途 | 推荐不透明度 |
+|------|------|-------------|
+| **Normal** | Logo、文字水印 | 80-100% |
+| **Screen** | 光效、高光效果 | 30-60% |
+| **Overlay** | 纹理、图案叠加 | 30-70% |
+| **Soft Light** | 柔和艺术效果 | 40-80% |
+
+---
+
+## 💡 实用案例
+
+### 📌 品牌水印
+```
+[1] logo.png (Normal, 100%)
+[2] brandname.png (Normal, 80%)
+```
+
+### ✨ 光效水印
+```
+[1] watermark.png (Normal, 70%)
+[2] glow.png (Screen, 50%)
+```
+
+### 🎭 复古效果
+```
+[1] texture.png (Overlay, 40%)
+[2] vignette.png (Soft Light, 60%)
+```
+
+### 🌐 多语言水印
+```
+[1] watermark_cn.png (Normal, 100%)
+[2] watermark_en.png (Normal, 80%)
+```
+
+---
+
+## 📚 详细文档
+
+| 文档 | 说明 |
+|------|------|
+| [快速开始](docs/QUICK_START.md) | 5分钟上手指南 |
+| [完整手册](docs/MULTILAYER_GUIDE.md) | 详细功能说明 |
+| [发布说明](docs/VERSION_1.5_RELEASE_NOTES.md) | 版本更新内容 |
+| [开发总结](docs/DEVELOPMENT_SUMMARY_V1.5.md) | 技术实现细节 |
+| [项目结构](docs/PROJECT_STRUCTURE.md) | 目录组织说明 |
+
+---
+
+## 🆚 版本历史
+
+| 版本 | 主要功能 | 状态 |
+|------|---------|------|
+| **v1.5** | 多图层 + 混合模式 + 智能颜色 | ⭐ 当前版本 |
+| v1.4 | 智能颜色 + 性能优化 | 可用 |
+| v1.3 | 基础智能颜色 | 可用 |
+| v1.2 | 基础水印功能 | 已归档 |
+
+查看完整 [版本历史](docs/VERSION_HISTORY.md)
+
+---
+
+## 💻 系统要求
+
+- **Python**: 3.7 或更高版本
+- **内存**: 最低 2GB，推荐 4GB+
+- **系统**: Windows 7+, macOS 10.12+, Linux
+
+### 依赖库
+```
+Pillow >= 8.0.0
+numpy >= 1.19.0
+```
+
+---
+
+## 📂 项目结构
+
+```
+watermarkApp/
+├── src/                    # 源代码
+│   └── watermark_app_multilayer.py  # v1.5 主程序
+├── configs/                # 配置文件
+├── docs/                   # 完整文档
+├── tests/                  # 测试文件
+├── archive/                # 归档版本
+├── run_multilayer.bat      # Windows 启动
+├── run_multilayer.sh       # Linux/Mac 启动
+└── README.md               # 本文档
+```
+
+---
+
+## ⚡ 性能指标
+
+测试环境: 1920x1080 图片, 2个图层
+
+| 性能模式 | 处理时间 | 质量 | 适用场景 |
+|---------|---------|------|---------|
+| Quality | 3.5秒 | ⭐⭐⭐⭐⭐ | 精品输出 |
+| Balanced | 2.0秒 | ⭐⭐⭐⭐ | 日常使用（推荐）|
+| Speed | 1.2秒 | ⭐⭐⭐ | 批量处理 |
+
+---
+
+## 🎯 核心优势
+
+✅ **专业级混合** - 完整 Photoshop 标准算法
+✅ **多层叠加** - 无限创意可能
+✅ **智能适应** - 自动颜色调整
+✅ **简单易用** - 友好的图形界面
+✅ **高效处理** - 批量处理支持
+✅ **配置记忆** - 自动保存设置
+
+---
+
+## 📞 获取帮助
+
+### 遇到问题？
+
+1. 查看 [快速开始指南](docs/QUICK_START.md)
+2. 阅读 [完整使用手册](docs/MULTILAYER_GUIDE.md)
+3. 检查 [常见问题](docs/MULTILAYER_GUIDE.md#常见问题)
+
+### 技术支持
+
+- 📖 查看文档: [docs/](docs/)
+- 🐛 报告问题: 提交 Issue
+- 💡 功能建议: 提交 Feature Request
+
+---
+
+## 🙏 致谢
+
+感谢以下开源项目:
+- [Pillow](https://python-pillow.org/) - 强大的图像处理库
+- [NumPy](https://numpy.org/) - 高性能科学计算库
+
+感谢所有用户的支持和反馈！
+
+---
+
+## 📄 许可证
+
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+
+---
+
+## 🎨 开始创作
+
+**Multi-Layer Watermark App v1.5** - 让每张图片都独一无二！
+
+*现在就开始创作你的专属水印吧！* ✨
+
+---
+
+<p align="center">
+  <strong>Made with ❤️ by WatermarkApp Team</strong>
+</p>

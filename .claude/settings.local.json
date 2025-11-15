@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(if [ -d test_images ])",
+      "Bash(then mv test_images/* tests/images_samples/)",
+      "Bash(else echo \"test_images not found\")",
+      "Bash(fi)",
+      "Bash(tree:*)",
+      "Bash(pyinstaller:*)",
+      "Bash(zip:*)",
+      "Bash(unzip:*)",
+      "Bash(tar:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

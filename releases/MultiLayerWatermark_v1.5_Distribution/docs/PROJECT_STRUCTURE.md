@@ -10,16 +10,15 @@ watermarkApp/
 ├── 📄 PROJECT_STRUCTURE.md          # 项目结构说明（本文件）
 │
 ├── 📂 src/                          # 源代码目录
-│   ├── watermark_app_alpha_protected.py    # V1.5 Alpha保护智能水印（当前最新版本）
+│   ├── watermark_app_multilayer.py         # V1.5 多图层混合模式水印（当前最新版本）
 │   ├── watermark_app_smart_optimized.py    # V1.4 优化版智能水印
 │   └── watermark_app_smart.py              # V1.3 基础智能水印
 │
 ├── 📂 configs/                      # 配置文件目录
-│   ├── alpha_protected_watermark_config.json     # Alpha保护版配置
+│   ├── multilayer_watermark_config.json          # 多图层版配置（最新）
 │   ├── smart_watermark_optimized_config.json     # 优化版配置
 │   ├── smart_watermark_config.json               # 基础智能版配置
 │   ├── watermark_app_config.json                 # 基础版配置
-│   ├── requirements_alpha_protected.txt          # Alpha保护版依赖
 │   └── requirements_smart.txt                    # 智能版依赖
 │
 ├── 📂 tests/                        # 测试文件目录
@@ -38,7 +37,7 @@ watermarkApp/
 │   └── watermark_app_v1.2.py       # V1.2基础版（已归档）
 │
 ├── 📂 docs/                         # 文档目录
-│   ├── ALPHA_PROTECTION_GUIDE.md   # Alpha保护功能指南
+│   ├── MULTILAYER_GUIDE.md         # 多图层水印使用指南（最新）
 │   ├── SMART_WATERMARK_ALGORITHM.md # 智能水印算法说明
 │   ├── PERFORMANCE_SUMMARY.md      # 性能测试总结
 │   ├── VERSION_HISTORY.md          # 版本历史
@@ -67,6 +66,9 @@ watermarkApp/
 ├── 📂 performance_test/             # 性能测试结果目录
 ├── 📂 alpha_protection_test/        # Alpha保护测试目录
 └── 📂 archive/                      # 归档文件目录
+    ├── watermark_app_alpha_protected.py       # V1.5 Alpha保护版（已归档）
+    ├── alpha_protected_watermark_config.json  # Alpha保护版配置
+    └── requirements_alpha_protected.txt       # Alpha保护版依赖
 ```
 
 ## 🎯 主要改进
@@ -88,15 +90,19 @@ watermarkApp/
 
 ### **启动应用**
 ```bash
-python watermark_app.py
+# 启动最新版本（V1.5 多图层版）
+python src/watermark_app_multilayer.py
+
+# 或使用 Python 3
+python3 src/watermark_app_multilayer.py
 ```
 
 ### **运行特定版本**
 ```bash
-# V1.5 Alpha保护版（推荐）
-python src/watermark_app_alpha_protected.py
+# V1.5 多图层混合模式版（推荐）⭐
+python src/watermark_app_multilayer.py
 
-# V1.4 优化版
+# V1.4 优化版智能水印
 python src/watermark_app_smart_optimized.py
 
 # V1.3 基础智能版
@@ -116,10 +122,11 @@ python tests/test_smart_watermark.py
 
 | 版本 | 文件名 | 主要功能 | 推荐使用 |
 |------|--------|----------|----------|
-| **V1.5** | `watermark_app_alpha_protected.py` | Alpha保护 + 智能颜色 + 边缘平滑 | ⭐ **当前最新** |
+| **V1.5** | `watermark_app_multilayer.py` | 多图层 + 混合模式 + 智能颜色 | ⭐ **当前最新** |
 | V1.4 | `watermark_app_smart_optimized.py` | 智能颜色 + 性能优化 | 高性能需求 |
 | V1.3 | `watermark_app_smart.py` | 基础智能颜色调整 | 简单需求 |
 | V1.2 | `versions/watermark_app_v1.2.py` | 基础水印功能 | 已归档 |
+| ~V1.5 Alpha~ | `archive/watermark_app_alpha_protected.py` | Alpha保护版本 | 已归档 |
 
 ## 🛠️ 开发说明
 
