@@ -6,6 +6,7 @@ import json
 import numpy as np
 import threading
 import time
+from text_label_module import TextLabelConfig, draw_text_label
 
 class WatermarkLayer:
     """水印图层类"""
@@ -61,6 +62,9 @@ class MultiLayerWatermarkApp:
         # 处理线程
         self.processing_thread = None
 
+        # 文本标注配置
+        self.text_label_config = TextLabelConfig()
+
         # Load configuration
         self.load_config()
 
@@ -106,6 +110,9 @@ class MultiLayerWatermarkApp:
 
         # Settings section
         self.create_settings_section(main_container)
+
+        # Text label section
+        self.create_text_label_section(main_container)
 
         # Progress section
         self.create_progress_section(main_container)
@@ -248,6 +255,39 @@ class MultiLayerWatermarkApp:
         stretch_cb = ttk.Checkbutton(settings_frame, text="Stretch watermark to fit image",
                                    variable=self.stretch_var, command=self.on_stretch_change)
         stretch_cb.pack(pady=5)
+
+    def create_text_label_section(self, parent):
+        """创建文本标注设置区域 - 方案1：简单版"""
+        label_frame = tk.LabelFrame(parent, text="🔤 Text Label (右上角标注)", font=('Helvetica', 11, 'bold'),
+                                   fg='#0095F6', bg='#FAFAFA', padx=10, pady=10)
+        label_frame.pack(fill=tk.X, pady=(0, 15))
+
+        # 启用标注
+        self.label_enabled_var = tk.BooleanVar(value=self.text_label_config.enabled)
+        enabled_cb = ttk.Checkbutton(label_frame, text="Enable text label (add number or filename to top-right)",
+                                    variable=self.label_enabled_var,
+                                    command=self.on_label_enabled_change)
+        enabled_cb.pack(anchor='w', pady=(0, 8))
+
+        # 标注类型
+        type_row = tk.Frame(label_frame, bg='#FAFAFA')
+        type_row.pack(fill=tk.X)
+
+        tk.Label(type_row, text="Label Type:", font=('Helvetica', 9),
+                fg='#262626', bg='#FAFAFA').pack(side=tk.LEFT, padx=(0, 10))
+
+        self.label_type_var = tk.StringVar(value=self.text_label_config.label_type)
+        label_type_combo = ttk.Combobox(type_row, textvariable=self.label_type_var,
+                                       values=['number', 'filename'],
+                                       state='readonly', width=12)
+        label_type_combo.pack(side=tk.LEFT)
+        label_type_combo.bind('<<ComboboxSelected>>', self.on_label_type_change)
+
+        # 提示信息
+        tip_label = tk.Label(label_frame,
+                           text="💡 Number: 1, 2, 3...  |  Filename: image_name",
+                           font=('Helvetica', 8), fg='#666666', bg='#FAFAFA')
+        tip_label.pack(anchor='w', pady=(5, 0))
 
     def create_progress_section(self, parent):
         """创建进度显示区域"""
@@ -697,6 +737,11 @@ class MultiLayerWatermarkApp:
                 # 处理图片
                 output = self.apply_multilayer_watermark(image)
 
+                # 应用文本标注
+                if self.text_label_config.enabled:
+                    filename = os.path.basename(self.image_paths[i])
+                    output = draw_text_label(output, filename, self.text_label_config, index=i+1)
+
                 # 转换为RGB并保存为JPG（保持画质）
                 if output.mode == 'RGBA':
                     # 创建白色背景
@@ -758,6 +803,11 @@ class MultiLayerWatermarkApp:
                                 str(layer_info.get('blend_mode', 'normal'))  # 确保转换为字符串
                             )
                             self.watermark_layers.append(layer)
+
+                    # 加载文本标注配置
+                    text_label_info = config.get('text_label', {})
+                    if text_label_info:
+                        self.text_label_config.from_dict(text_label_info)
             else:
                 self.set_default_config()
         except Exception as e:
@@ -792,7 +842,8 @@ class MultiLayerWatermarkApp:
                 'last_images_directory': self.last_images_directory,
                 'last_stretch': self.stretch_var.get() if self.stretch_var else self.last_stretch,
                 'last_images_files': self.last_images_files,
-                'layers': layers_info
+                'layers': layers_info,
+                'text_label': self.text_label_config.to_dict()
             }
 
             # 确保configs目录存在
@@ -806,6 +857,16 @@ class MultiLayerWatermarkApp:
 
     # 事件处理方法
     def on_stretch_change(self):
+        self.save_config()
+
+    def on_label_enabled_change(self):
+        """标注启用状态改变"""
+        self.text_label_config.enabled = self.label_enabled_var.get()
+        self.save_config()
+
+    def on_label_type_change(self, event):
+        """标注类型改变"""
+        self.text_label_config.label_type = self.label_type_var.get()
         self.save_config()
 
     def auto_load_last_files(self):
