@@ -306,19 +306,23 @@ class MultiLayerWatermarkApp:
         font_combo.pack(side=tk.LEFT)
         font_combo.bind('<<ComboboxSelected>>', self.on_label_font_change)
 
-        # 字体大小
+        # 字体大小（百分比，相对于图片高度）
         size_row = tk.Frame(label_frame, bg='#FAFAFA')
         size_row.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(size_row, text="Font Size:", font=('Helvetica', 9),
                 fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
 
-        self.label_font_size_var = tk.IntVar(value=self.text_label_config.font_size)
-        self.label_font_size_slider = tk.Scale(size_row, from_=12, to=120, orient=tk.HORIZONTAL,
+        self.label_font_size_var = tk.DoubleVar(value=self.text_label_config.font_size)
+        self.label_font_size_slider = tk.Scale(size_row, from_=0.5, to=10.0, resolution=0.1,
+                                               orient=tk.HORIZONTAL,
                                                variable=self.label_font_size_var,
-                                               showvalue=True, length=200,
+                                               showvalue=True, length=180,
                                                command=self.on_label_font_size_change)
         self.label_font_size_slider.pack(side=tk.LEFT)
+
+        tk.Label(size_row, text="% (of image height)", font=('Helvetica', 9),
+                fg='#666666', bg='#FAFAFA').pack(side=tk.LEFT, padx=(5, 0))
 
         # 提示信息
         tip_label = tk.Label(label_frame,
@@ -965,8 +969,8 @@ class MultiLayerWatermarkApp:
         print(f"🎨 字体已更改: {self.text_label_config.font_name or 'Auto'}")
 
     def on_label_font_size_change(self, value):
-        """标注字体大小改变"""
-        self.text_label_config.font_size = int(float(value))
+        """标注字体大小改变（百分比）"""
+        self.text_label_config.font_size = round(float(value), 1)
         self.save_config()
 
     def auto_load_last_files(self):

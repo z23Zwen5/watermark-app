@@ -125,7 +125,7 @@ class TextLabelConfig:
         self.position = self.POSITION_TOP_RIGHT
 
         # 文本样式
-        self.font_size = 36
+        self.font_size = 3.0  # 字体大小百分比（相对于图片高度）
         self.font_name = None  # 字体名称（从系统字体中选择）
         self.text_color = (255, 255, 255)  # 白色
         self.auto_contrast = True  # 自动对比色
@@ -165,7 +165,16 @@ class TextLabelConfig:
         self.enabled = config_dict.get('enabled', False)
         self.label_type = config_dict.get('label_type', self.LABEL_TYPE_NUMBER)
         self.position = config_dict.get('position', self.POSITION_TOP_RIGHT)
-        self.font_size = config_dict.get('font_size', 36)
+
+        # 字体大小：兼容旧配置（像素值 > 15 视为旧格式）
+        font_size = config_dict.get('font_size', 3.0)
+        if font_size > 15:  # 旧配置使用像素值
+            # 转换为百分比（基于 1080p 高度）
+            self.font_size = round((font_size / 1080) * 100, 1)
+            print(f"🔄 转换旧字体大小: {font_size}px → {self.font_size}%")
+        else:
+            self.font_size = float(font_size)
+
         self.font_name = config_dict.get('font_name', None)
         self.text_color = tuple(config_dict.get('text_color', [255, 255, 255]))
         self.auto_contrast = config_dict.get('auto_contrast', True)
@@ -324,8 +333,11 @@ class TextLabelDrawer:
             # 移除扩展名
             label_text = os.path.splitext(text)[0]
 
-        # 获取字体
-        font = self.get_font(self.config.font_size)
+        # 根据图片高度计算实际字体像素大小（百分比转像素）
+        actual_font_size = int(image.height * (self.config.font_size / 100))
+        # 确保字体大小在合理范围内
+        actual_font_size = max(12, min(actual_font_size, 500))
+        font = self.get_font(actual_font_size)
 
         # 获取文本边界框（使用 textbbox）
         try:
