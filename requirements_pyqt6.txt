@@ -1,0 +1,5 @@
+# PyQt6 Version Requirements
+PyQt6>=6.4.0
+qtawesome>=1.2.0
+Pillow>=9.0.0
+numpy>=1.20.0

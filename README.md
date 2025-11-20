@@ -8,6 +8,33 @@
 
 ---
 
+## 🌟 NEW: 原神风格 PyQt6 版本
+
+现在提供两个版本供您选择：
+
+| 版本 | UI 框架 | 风格 | 推荐场景 |
+|------|---------|------|----------|
+| **Tkinter 版** | Tkinter | 简洁实用 | 快速启动、低内存 |
+| **PyQt6 版** 🎮 | PyQt6 | **原神风格** | 精美界面、专业体验 |
+
+### 🎨 PyQt6 原神风格版本特色
+
+- ✨ 金色原神主题设计
+- 🎯 自定义标题栏（可拖动）
+- 💫 渐变按钮与平滑动画
+- 🌟 Font Awesome 图标
+- 📱 完美高 DPI 支持
+
+**快速启动 PyQt6 版本：**
+```bash
+./run_pyqt6.sh      # Linux/macOS
+run_pyqt6.bat       # Windows
+```
+
+**详细文档：** [PyQt6 Genshin Style Guide](docs/PYQT6_GENSHIN_STYLE.md)
+
+---
+
 ## ✨ 功能亮点
 
 🎨 **多图层系统** - 支持无限制添加水印图层，自由组合
