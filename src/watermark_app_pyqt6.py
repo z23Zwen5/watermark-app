@@ -125,7 +125,7 @@ class MultiLayerWatermarkApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("Multi-Layer Watermark App v1.6.2")
         self.setObjectName("MainWindow")
-        self.setMinimumSize(700, 850)
+        self.setMinimumSize(1000, 700)
 
         # Frameless window with custom title bar
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
@@ -551,18 +551,34 @@ class MultiLayerWatermarkApp(QMainWindow):
         subtitle_label.setStyleSheet("color: #D3BC8E; padding-bottom: 10px;")
         self.content_layout.addWidget(subtitle_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # Create sections
-        self.create_upload_section()
-        self.create_layer_section()
-        self.create_settings_section()
-        self.create_text_label_section()
-        self.create_progress_section()
-        self.create_save_section()
-        self.create_action_section()
+        # Create two-column layout
+        main_columns = QHBoxLayout()
+        main_columns.setSpacing(20)
 
-        self.content_layout.addStretch(1)
+        # Left column - Main functionality
+        left_column = QVBoxLayout()
+        left_column.setSpacing(15)
+        self.create_upload_section(left_column)
+        self.create_layer_section(left_column)
+        left_column.addStretch(1)
 
-    def create_upload_section(self):
+        # Right column - Settings and controls
+        right_column = QVBoxLayout()
+        right_column.setSpacing(15)
+        self.create_settings_section(right_column)
+        self.create_text_label_section(right_column)
+        self.create_progress_section(right_column)
+        self.create_save_section(right_column)
+        self.create_action_section(right_column)
+        right_column.addStretch(1)
+
+        # Add columns to main layout
+        main_columns.addLayout(left_column, 3)  # Left takes 60% width
+        main_columns.addLayout(right_column, 2)  # Right takes 40% width
+
+        self.content_layout.addLayout(main_columns)
+
+    def create_upload_section(self, parent_layout):
         """创建文件上传区域"""
         upload_group = QGroupBox("✦ File Upload")
         layout = QVBoxLayout(upload_group)
@@ -580,9 +596,9 @@ class MultiLayerWatermarkApp(QMainWindow):
         btn_layout.addStretch(1)
 
         layout.addWidget(btn_frame)
-        self.content_layout.addWidget(upload_group)
+        parent_layout.addWidget(upload_group)
 
-    def create_layer_section(self):
+    def create_layer_section(self, parent_layout):
         """创建图层管理区域"""
         layer_group = QGroupBox("✦ Watermark Layers")
         layout = QVBoxLayout(layer_group)
@@ -681,9 +697,9 @@ class MultiLayerWatermarkApp(QMainWindow):
         # Initially disable editor
         self.set_editor_enabled(False)
 
-        self.content_layout.addWidget(layer_group)
+        parent_layout.addWidget(layer_group)
 
-    def create_settings_section(self):
+    def create_settings_section(self, parent_layout):
         """创建基础设置区域"""
         settings_group = QGroupBox("✦ Settings")
         layout = QVBoxLayout(settings_group)
@@ -694,9 +710,9 @@ class MultiLayerWatermarkApp(QMainWindow):
         self.stretch_checkbox.stateChanged.connect(self.on_stretch_change)
         layout.addWidget(self.stretch_checkbox)
 
-        self.content_layout.addWidget(settings_group)
+        parent_layout.addWidget(settings_group)
 
-    def create_text_label_section(self):
+    def create_text_label_section(self, parent_layout):
         """创建文本标注设置区域"""
         label_group = QGroupBox("✦ Text Label (文字标注)")
         layout = QVBoxLayout(label_group)
@@ -772,9 +788,9 @@ class MultiLayerWatermarkApp(QMainWindow):
         tip_label.setStyleSheet("color: #666666; font-size: 10px;")
         layout.addWidget(tip_label)
 
-        self.content_layout.addWidget(label_group)
+        parent_layout.addWidget(label_group)
 
-    def create_progress_section(self):
+    def create_progress_section(self, parent_layout):
         """创建进度显示区域"""
         progress_frame = QFrame()
         progress_layout = QVBoxLayout(progress_frame)
@@ -790,9 +806,9 @@ class MultiLayerWatermarkApp(QMainWindow):
         self.status_label.setStyleSheet("color: #666666; font-size: 12px;")
         progress_layout.addWidget(self.status_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self.content_layout.addWidget(progress_frame)
+        parent_layout.addWidget(progress_frame)
 
-    def create_save_section(self):
+    def create_save_section(self, parent_layout):
         """创建保存目录区域"""
         save_frame = QFrame()
         save_layout = QHBoxLayout(save_frame)
@@ -815,15 +831,15 @@ class MultiLayerWatermarkApp(QMainWindow):
         self.save_dir_label.setWordWrap(True)
         save_layout.addWidget(self.save_dir_label, 1)
 
-        self.content_layout.addWidget(save_frame)
+        parent_layout.addWidget(save_frame)
         self.update_save_dir_label()
 
-    def create_action_section(self):
+    def create_action_section(self, parent_layout):
         """创建操作按钮区域"""
         self.apply_btn = QPushButton("✦ Apply Multi-Layer Watermark")
         self.apply_btn.setObjectName("applyButton")
         self.apply_btn.clicked.connect(self.apply_watermark_threaded)
-        self.content_layout.addWidget(self.apply_btn)
+        parent_layout.addWidget(self.apply_btn)
 
     def set_editor_enabled(self, enabled: bool):
         """启用/禁用编辑器"""
