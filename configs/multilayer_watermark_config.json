@@ -1,36 +1,38 @@
 {
-  "last_used_directory": "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男",
+  "last_used_directory": "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人",
   "save_directory": "C:/Users/64117/Downloads",
   "last_watermark_directory": "D:/Recent/starcore_OC/blind-box-starcore-202507/branding/watermark",
-  "last_images_directory": "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男",
+  "last_images_directory": "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人",
   "last_stretch": true,
   "last_images_files": [
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-战斗系鸟人 (2).jpg",
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-战斗系鸟人 (6).jpg",
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-战斗系鸟人 (8).jpg",
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-战斗系鸟人 (16).jpg",
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-战斗系鸟人 (23).jpg",
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-机能风鸟-粉黑白 (1).jpg",
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-机能风鸟-蓝黑 (2).jpg",
-    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1_抖音垃圾/1115战斗系鸟男/M-机能风鸟-蓝黑橙 (1).jpg"
+    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人/娜迦-可选 (4).jpg",
+    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人/寂灭蛇女 (1).jpg",
+    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人/白蛇巫女 (1).jpg",
+    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人/蛇男 (6).jpg",
+    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人/蛇男 (8).jpg",
+    "D:/Recent/starcore_OC/blind-box-starcore-202507/images/展示款/1106蛇人/蛇男 (13).jpg"
   ],
   "layers": [
     {
       "path": "D:/Recent/starcore_OC/blind-box-starcore-202507/branding/watermark/AAA黑底适用方块底层水印.png",
       "opacity": 100,
-      "blend_mode": "overlay"
+      "blend_mode": "overlay",
+      "visible": true
     },
     {
       "path": "D:/Recent/starcore_OC/blind-box-starcore-202507/branding/watermark/BBB黑色拦截水印.png",
       "opacity": 100,
-      "blend_mode": "normal"
+      "blend_mode": "normal",
+      "visible": true
     }
   ],
   "text_label": {
     "enabled": true,
-    "label_type": "number",
-    "position": "top_right",
-    "font_size": 36,
+    "label_type": "filename",
+    "position": "bottom_right",
+    "orientation": "vertical",
+    "font_size": 10.0,
+    "font_name": "京華老宋体 KingHwa OldSong 1.001",
     "text_color": [
       255,
       255,

@@ -7,8 +7,8 @@ echo   Building with custom icon
 echo ========================================
 echo.
 
-REM Set paths
-set "PROJECT_ROOT=%~dp0"
+REM Set paths (script is in tools/ directory, need to go up one level)
+set "PROJECT_ROOT=%~dp0..\"
 set "SRC_FILE=%PROJECT_ROOT%src\watermark_app_multilayer.py"
 set "ICON_FILE=%PROJECT_ROOT%assets\watermark_app_icon.ico"
 set "OUTPUT_NAME=WatermarkApp_v1.6"
@@ -39,10 +39,11 @@ echo [2/5] Installing dependencies...
 pip install pillow numpy >nul 2>&1
 
 echo [3/5] Cleaning old builds...
-if exist build rmdir /s /q build
-if exist dist rmdir /s /q dist
+if exist "%PROJECT_ROOT%build" rmdir /s /q "%PROJECT_ROOT%build"
+if exist "%PROJECT_ROOT%dist" rmdir /s /q "%PROJECT_ROOT%dist"
 
 echo [4/5] Building executable with icon...
+cd "%PROJECT_ROOT%"
 pyinstaller --onefile ^
             --windowed ^
             --clean ^
@@ -68,12 +69,12 @@ echo ========================================
 echo.
 
 REM Check if file exists
-if exist "dist\%OUTPUT_NAME%.exe" (
-    for %%A in ("dist\%OUTPUT_NAME%.exe") do (
+if exist "%PROJECT_ROOT%dist\%OUTPUT_NAME%.exe" (
+    for %%A in ("%PROJECT_ROOT%dist\%OUTPUT_NAME%.exe") do (
         echo File size: %%~zA bytes
     )
     echo.
-    echo You can now run: dist\%OUTPUT_NAME%.exe
+    echo You can now run: %PROJECT_ROOT%dist\%OUTPUT_NAME%.exe
 ) else (
     echo [WARNING] Executable not found in dist folder
 )
