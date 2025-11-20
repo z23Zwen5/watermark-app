@@ -4,7 +4,8 @@ Text Label Module for Watermark App
 
 功能：
 - 支持序号（1, 2, 3...）或文件名标注
-- 智能字体选择（中英文自适应）
+- 自动扫描系统字体（类似 Photoshop）
+- 字体下拉选择
 - 自动对比色（基于背景颜色）
 - 半透明背景（提高可读性）
 - 可配置位置/大小/颜色
@@ -13,6 +14,95 @@ Text Label Module for Watermark App
 from PIL import Image, ImageDraw, ImageFont
 import os
 import colorsys
+import platform
+
+
+def scan_system_fonts():
+    """扫描系统已安装字体（类似 Photoshop）
+
+    Returns:
+        dict: {字体显示名称: 字体文件路径}
+    """
+    fonts = {}
+    system = platform.system()
+
+    # 定义字体目录
+    font_dirs = []
+    if system == 'Windows':
+        font_dirs = [
+            'C:/Windows/Fonts',
+            os.path.expanduser('~\\AppData\\Local\\Microsoft\\Windows\\Fonts')
+        ]
+    elif system == 'Darwin':  # macOS
+        font_dirs = [
+            '/Library/Fonts',
+            '/System/Library/Fonts',
+            os.path.expanduser('~/Library/Fonts')
+        ]
+    else:  # Linux
+        font_dirs = [
+            '/usr/share/fonts',
+            '/usr/local/share/fonts',
+            os.path.expanduser('~/.fonts'),
+            os.path.expanduser('~/.local/share/fonts')
+        ]
+
+    # 支持的字体扩展名
+    font_extensions = ('.ttf', '.ttc', '.otf')
+
+    # 扫描字体目录
+    for font_dir in font_dirs:
+        if not os.path.exists(font_dir):
+            continue
+
+        try:
+            for root, dirs, files in os.walk(font_dir):
+                for file in files:
+                    if file.lower().endswith(font_extensions):
+                        font_path = os.path.join(root, file)
+                        # 使用文件名（去掉扩展名）作为显示名称
+                        font_name = os.path.splitext(file)[0]
+                        # 清理字体名称
+                        font_name = font_name.replace('_', ' ').replace('-', ' ')
+                        fonts[font_name] = font_path
+        except Exception as e:
+            print(f"⚠️ 扫描字体目录出错 {font_dir}: {e}")
+
+    # 添加常用字体的友好名称映射
+    friendly_names = {
+        'Arial': 'Arial',
+        'msyh': '微软雅黑',
+        'simsun': '宋体',
+        'simhei': '黑体',
+        'PingFang': '苹方',
+        'DejaVuSans': 'DejaVu Sans',
+        'NotoSans': 'Noto Sans',
+    }
+
+    # 应用友好名称
+    renamed_fonts = {}
+    for font_name, font_path in fonts.items():
+        display_name = font_name
+        for key, friendly in friendly_names.items():
+            if key.lower() in font_name.lower():
+                display_name = friendly
+                break
+        renamed_fonts[display_name] = font_path
+
+    return renamed_fonts
+
+
+# 全局字体缓存（应用启动时扫描一次）
+_SYSTEM_FONTS_CACHE = None
+
+def get_system_fonts():
+    """获取系统字体（带缓存）"""
+    global _SYSTEM_FONTS_CACHE
+    if _SYSTEM_FONTS_CACHE is None:
+        print("🔍 正在扫描系统字体...")
+        _SYSTEM_FONTS_CACHE = scan_system_fonts()
+        print(f"✅ 找到 {len(_SYSTEM_FONTS_CACHE)} 个字体")
+    return _SYSTEM_FONTS_CACHE
 
 
 class TextLabelConfig:
@@ -36,6 +126,7 @@ class TextLabelConfig:
 
         # 文本样式
         self.font_size = 36
+        self.font_name = None  # 字体名称（从系统字体中选择）
         self.text_color = (255, 255, 255)  # 白色
         self.auto_contrast = True  # 自动对比色
 
@@ -57,6 +148,7 @@ class TextLabelConfig:
             'label_type': self.label_type,
             'position': self.position,
             'font_size': self.font_size,
+            'font_name': self.font_name,
             'text_color': list(self.text_color),
             'auto_contrast': self.auto_contrast,
             'background_enabled': self.background_enabled,
@@ -74,6 +166,7 @@ class TextLabelConfig:
         self.label_type = config_dict.get('label_type', self.LABEL_TYPE_NUMBER)
         self.position = config_dict.get('position', self.POSITION_TOP_RIGHT)
         self.font_size = config_dict.get('font_size', 36)
+        self.font_name = config_dict.get('font_name', None)
         self.text_color = tuple(config_dict.get('text_color', [255, 255, 255]))
         self.auto_contrast = config_dict.get('auto_contrast', True)
         self.background_enabled = config_dict.get('background_enabled', True)
@@ -95,44 +188,57 @@ class TextLabelDrawer:
     def get_font(self, size):
         """获取字体（带缓存）
 
-        尝试加载系统字体，优先使用支持中文的字体
+        优先使用用户选择的字体，否则使用默认字体
         """
-        if size in self._font_cache:
-            return self._font_cache[size]
-
-        # 常见的中文字体路径（按优先级）
-        font_paths = [
-            # Windows
-            "C:/Windows/Fonts/msyh.ttc",      # 微软雅黑
-            "C:/Windows/Fonts/simsun.ttc",    # 宋体
-            "C:/Windows/Fonts/simhei.ttf",    # 黑体
-            "C:/Windows/Fonts/arial.ttf",     # Arial
-            # Linux
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",  # Noto CJK
-            # macOS
-            "/System/Library/Fonts/PingFang.ttc",  # 苹方
-            "/Library/Fonts/Arial.ttf",
-        ]
+        cache_key = (self.config.font_name, size)
+        if cache_key in self._font_cache:
+            return self._font_cache[cache_key]
 
         font = None
-        for font_path in font_paths:
-            if os.path.exists(font_path):
+
+        # 如果用户选择了字体，尝试加载
+        if self.config.font_name:
+            system_fonts = get_system_fonts()
+            if self.config.font_name in system_fonts:
+                font_path = system_fonts[self.config.font_name]
                 try:
                     font = ImageFont.truetype(font_path, size)
-                    print(f"✅ 加载字体: {font_path}")
-                    break
+                    print(f"✅ 加载字体: {self.config.font_name} ({font_path})")
                 except Exception as e:
-                    print(f"⚠️ 字体加载失败 {font_path}: {e}")
-                    continue
+                    print(f"⚠️ 字体加载失败 {self.config.font_name}: {e}")
 
-        # 如果没有找到字体，使用默认字体
+        # 如果没有选择字体或加载失败，使用默认字体列表
+        if font is None:
+            font_paths = [
+                # Windows
+                "C:/Windows/Fonts/msyh.ttc",      # 微软雅黑
+                "C:/Windows/Fonts/simsun.ttc",    # 宋体
+                "C:/Windows/Fonts/simhei.ttf",    # 黑体
+                "C:/Windows/Fonts/arial.ttf",     # Arial
+                # Linux
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",  # Noto CJK
+                # macOS
+                "/System/Library/Fonts/PingFang.ttc",  # 苹方
+                "/Library/Fonts/Arial.ttf",
+            ]
+
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    try:
+                        font = ImageFont.truetype(font_path, size)
+                        print(f"✅ 加载默认字体: {font_path}")
+                        break
+                    except Exception as e:
+                        continue
+
+        # 如果还是没有找到字体，使用 PIL 默认字体
         if font is None:
             print("⚠️ 未找到系统字体，使用默认字体")
             font = ImageFont.load_default()
 
-        self._font_cache[size] = font
+        self._font_cache[cache_key] = font
         return font
 
     def get_contrasting_color(self, image, position):
