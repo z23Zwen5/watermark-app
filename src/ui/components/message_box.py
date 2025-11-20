@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Genshin Style Message Box Component
-原神风格消息框组件
+Themed Message Box Component
+主题化消息框组件
 """
 from PyQt6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout,
@@ -10,16 +10,17 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 import qtawesome as qta
-from ..styles import Colors, FONT_FAMILY, GenshinStyleSheet
+from ..styles.theme_base import ThemeManager
 
 
 class GenshinMessageBox(QDialog):
-    """Custom Genshin Style Dialog
-    自定义原神风格对话框
+    """Custom Themed Dialog
+    自定义主题化对话框
     """
 
     def __init__(self, parent, title, message, icon_type="info"):
         super().__init__(parent)
+        self.theme = ThemeManager.get_theme()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(400, 220)
@@ -29,13 +30,13 @@ class GenshinMessageBox(QDialog):
         self.widget.setGeometry(0, 0, 400, 220)
         self.widget.setStyleSheet(f"""
             QWidget {{
-                background-color: {Colors.BG_LIGHT};
-                border: 2px solid {Colors.ACCENT_GOLD};
+                background-color: {self.theme.bg_light};
+                border: 2px solid {self.theme.accent_primary};
                 border-radius: 12px;
             }}
             QLabel {{
                 border: none;
-                font-family: {FONT_FAMILY};
+                font-family: {self.theme.font_family};
             }}
         """)
 
@@ -60,7 +61,7 @@ class GenshinMessageBox(QDialog):
         title_bar.setFixedHeight(40)
         title_bar.setStyleSheet(f"""
             QFrame {{
-                background-color: {Colors.BG_DARK};
+                background-color: {self.theme.bg_dark};
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
                 border-bottom-left-radius: 0px;
@@ -73,26 +74,26 @@ class GenshinMessageBox(QDialog):
 
         lbl_title = QLabel(title)
         lbl_title.setStyleSheet(f"""
-            color: {Colors.TEXT_TITLE};
+            color: {self.theme.text_title};
             font-weight: bold;
             font-size: 15px;
             background: transparent;
         """)
 
         btn_close = QPushButton()
-        btn_close.setIcon(qta.icon('fa5s.times', color=Colors.ACCENT_GOLD))
+        btn_close.setIcon(qta.icon('fa5s.times', color=self.theme.accent_primary))
         btn_close.setFixedSize(30, 30)
         btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_close.clicked.connect(self.close)
-        btn_close.setStyleSheet("""
-            QPushButton {
+        btn_close.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
-            }
-            QPushButton:hover {
-                background-color: rgba(255,255,255,0.1);
+            }}
+            QPushButton:hover {{
+                background-color: {self.theme.hover_bg};
                 border-radius: 15px;
-            }
+            }}
         """)
 
         title_layout.addWidget(lbl_title)
@@ -110,13 +111,13 @@ class GenshinMessageBox(QDialog):
         # Icon
         if icon_type == "success":
             lbl_icon = QLabel()
-            lbl_icon.setPixmap(qta.icon('fa5s.check-circle', color='#2E7D32').pixmap(40, 40))
+            lbl_icon.setPixmap(qta.icon('fa5s.check-circle', color=self.theme.success_color).pixmap(40, 40))
             lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl_icon.setStyleSheet("background: transparent; border: none;")
             content_layout.addWidget(lbl_icon)
         elif icon_type == "error":
             lbl_icon = QLabel()
-            lbl_icon.setPixmap(qta.icon('fa5s.exclamation-circle', color='#C62828').pixmap(40, 40))
+            lbl_icon.setPixmap(qta.icon('fa5s.exclamation-circle', color=self.theme.error_color).pixmap(40, 40))
             lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl_icon.setStyleSheet("background: transparent; border: none;")
             content_layout.addWidget(lbl_icon)
@@ -126,7 +127,7 @@ class GenshinMessageBox(QDialog):
         lbl_msg.setWordWrap(True)
         lbl_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_msg.setStyleSheet(f"""
-            color: {Colors.TEXT_PRIMARY};
+            color: {self.theme.text_primary};
             font-size: 14px;
             font-weight: 500;
             background: transparent;
@@ -146,7 +147,7 @@ class GenshinMessageBox(QDialog):
         btn_ok = QPushButton("Confirm")
         btn_ok.setFixedSize(120, 36)
         btn_ok.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_ok.setStyleSheet(GenshinStyleSheet.get_button_style('primary'))
+        btn_ok.setStyleSheet(self.theme.get_button_stylesheet('primary'))
         btn_ok.clicked.connect(self.accept)
 
         btn_layout.addWidget(btn_ok)

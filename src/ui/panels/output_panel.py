@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 import qtawesome as qta
-from ..styles import Colors, GenshinStyleSheet
+from ..styles.theme_base import ThemeManager
 
 
 class OutputPanel(QWidget):
@@ -24,6 +24,7 @@ class OutputPanel(QWidget):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.config = config
+        self.theme = ThemeManager.get_theme()
         self._create_ui()
 
     def _create_ui(self):
@@ -39,13 +40,13 @@ class OutputPanel(QWidget):
         # 输出文件夹选择
         hbox_path = QHBoxLayout()
         self.btn_path = QPushButton(" Output Folder")
-        self.btn_path.setIcon(qta.icon('fa5s.folder', color='#1F2329'))
-        self.btn_path.setStyleSheet(GenshinStyleSheet.get_button_style('secondary'))
+        self.btn_path.setIcon(qta.icon('fa5s.folder', color=self.theme.text_primary))
+        self.btn_path.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.btn_path.clicked.connect(self._select_directory)
 
         self.lbl_path = QLabel("Auto (Same as source)")
         self.lbl_path.setStyleSheet(
-            f"color: {Colors.TEXT_PATH}; font-weight: bold; font-size: 13px;"
+            f"color: {self.theme.text_path}; font-weight: bold; font-size: 13px;"
         )
         self.lbl_path.setWordWrap(True)
 
@@ -63,12 +64,12 @@ class OutputPanel(QWidget):
         # 状态标签
         self.lbl_status = QLabel("Ready")
         self.lbl_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_status.setStyleSheet("color: #6F7685; font-weight: bold;")
+        self.lbl_status.setStyleSheet(f"color: {self.theme.text_secondary}; font-weight: bold;")
         vbox.addWidget(self.lbl_status)
 
         # 处理按钮
         self.btn_apply = QPushButton("START PROCESSING")
-        self.btn_apply.setStyleSheet(GenshinStyleSheet.get_button_style('primary'))
+        self.btn_apply.setStyleSheet(self.theme.get_button_stylesheet('primary'))
         self.btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_apply.setMinimumHeight(55)
         self.btn_apply.clicked.connect(self._on_process_clicked)

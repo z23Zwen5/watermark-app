@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 import qtawesome as qta
 from watermark_core import WatermarkLayer
-from ..styles import Colors, GenshinStyleSheet
+from ..styles.theme_base import ThemeManager
 
 
 class LayerPanel(QWidget):
@@ -30,6 +30,7 @@ class LayerPanel(QWidget):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.config = config
+        self.theme = ThemeManager.get_theme()
         self.watermark_layers = []
         self.current_layer_index = None
         self._updating_opacity = False
@@ -62,11 +63,11 @@ class LayerPanel(QWidget):
 
         for icon, func, tip in cmds:
             btn = QPushButton()
-            btn.setIcon(qta.icon(icon, color='#3E3429'))
+            btn.setIcon(qta.icon(icon, color=self.theme.icon_color))
             btn.setFixedSize(34, 34)
             btn.setToolTip(tip)
             btn.clicked.connect(func)
-            btn.setStyleSheet(GenshinStyleSheet.get_button_style('icon'))
+            btn.setStyleSheet(self.theme.get_button_stylesheet('icon'))
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             hbox_tools.addWidget(btn)
 
@@ -76,8 +77,8 @@ class LayerPanel(QWidget):
         # 属性面板
         self.prop_frame = QFrame()
         self.prop_frame.setStyleSheet(
-            "background: rgba(255,255,255,0.4); border-radius: 8px; "
-            "padding: 8px; border: 1px solid #CCC;"
+            f"background: {self.theme.panel_overlay}; border-radius: 8px; "
+            f"padding: 8px; border: 1px solid {self.theme.accent_primary_dark};"
         )
         prop_layout = QVBoxLayout(self.prop_frame)
 
@@ -103,7 +104,7 @@ class LayerPanel(QWidget):
 
         self.opacity_val = QLabel("100%")
         self.opacity_val.setStyleSheet(
-            f"color: {Colors.TEXT_PRIMARY}; font-weight: bold; font-size: 11px;"
+            f"color: {self.theme.text_primary}; font-weight: bold; font-size: 11px;"
         )
         self.opacity_val.setFixedWidth(60)
         self.opacity_val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -185,7 +186,7 @@ class LayerPanel(QWidget):
 
             # 使用 fa5s 图标
             icon_name = 'fa5s.check-circle' if layer.visible else 'fa5s.circle'
-            icon_color = Colors.ACCENT_GOLD if layer.visible else '#999'
+            icon_color = self.theme.accent_primary if layer.visible else self.theme.text_secondary
 
             item.setIcon(qta.icon(icon_name, color=icon_color))
             self.layer_list.addItem(item)

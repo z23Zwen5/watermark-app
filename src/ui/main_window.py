@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from watermark_core import WatermarkConfig, BatchProcessor
-from .styles import GenshinStyleSheet
+from .styles.theme_base import ThemeManager
 from .components import CustomTitleBar, GenshinMessageBox
 from .panels import (
     UploadPanel, LayerPanel, SettingsPanel,
@@ -59,8 +59,11 @@ class MainWindow(QMainWindow):
 
     def _create_ui(self):
         """创建UI"""
-        # 应用样式
-        self.setStyleSheet(GenshinStyleSheet.get_main_style())
+        # 获取当前主题
+        theme = ThemeManager.get_theme()
+
+        # 应用样式 (主样式已在 apply_global_style 中应用，这里不需要重复)
+        # self.setStyleSheet(theme.get_main_stylesheet())
 
         # 中心部件
         self.center_widget = QWidget()

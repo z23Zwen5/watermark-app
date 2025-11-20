@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QGraphics
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 import qtawesome as qta
-from ..styles import Colors, FONT_FAMILY
+from ..styles.theme_base import ThemeManager
 
 
 class CustomTitleBar(QWidget):
@@ -22,6 +22,7 @@ class CustomTitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent_window = parent
+        self.theme = ThemeManager.get_theme()
         self.setFixedHeight(48)
         self.setObjectName("CustomTitleBar")
 
@@ -31,14 +32,14 @@ class CustomTitleBar(QWidget):
         # 设置样式
         self.setStyleSheet(f"""
             QWidget#CustomTitleBar {{
-                background-color: {Colors.BG_LIGHT};
+                background-color: {self.theme.bg_light};
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
-                border-bottom: 1px solid {Colors.ACCENT_GOLD};
+                border-bottom: 1px solid {self.theme.accent_primary};
             }}
             QLabel {{
-                color: {Colors.TEXT_HEADER};
-                font-family: {FONT_FAMILY};
+                color: {self.theme.text_header};
+                font-family: {self.theme.font_family};
                 font-weight: 900;
                 font-size: 16px;
             }}
@@ -49,7 +50,7 @@ class CustomTitleBar(QWidget):
 
         # 图标
         self.icon_label = QLabel("✦")
-        self.icon_label.setStyleSheet(f"color: {Colors.ACCENT_GOLD_DARK}; font-size: 22px;")
+        self.icon_label.setStyleSheet(f"color: {self.theme.accent_primary_dark}; font-size: 22px;")
         layout.addWidget(self.icon_label)
 
         # 标题
@@ -66,9 +67,9 @@ class CustomTitleBar(QWidget):
         layout.addStretch(1)
 
         # 窗口控制按钮
-        self.minimize_btn = self._create_btn("fa5s.window-minimize", icon_color=Colors.TEXT_HEADER)
-        self.maximize_btn = self._create_btn("fa5s.window-maximize", icon_color=Colors.TEXT_HEADER)
-        self.close_btn = self._create_btn("fa5s.times", hover_color="#FF5C5C", icon_color=Colors.TEXT_HEADER)
+        self.minimize_btn = self._create_btn("fa5s.window-minimize", icon_color=self.theme.text_header)
+        self.maximize_btn = self._create_btn("fa5s.window-maximize", icon_color=self.theme.text_header)
+        self.close_btn = self._create_btn("fa5s.times", hover_color=self.theme.close_btn_hover, icon_color=self.theme.text_header)
 
         self.minimize_btn.clicked.connect(self.minimize_requested.emit)
         self.maximize_btn.clicked.connect(self.maximize_restore_requested.emit)
@@ -83,13 +84,13 @@ class CustomTitleBar(QWidget):
     def _create_btn(self, icon_name, hover_color=None, icon_color=None):
         """创建控制按钮"""
         if icon_color is None:
-            icon_color = Colors.ACCENT_GOLD
+            icon_color = self.theme.accent_primary
 
         btn = QPushButton()
         btn.setIcon(qta.icon(icon_name, color=icon_color))
         btn.setFixedSize(36, 36)
 
-        bg_hover = f"background-color: {hover_color};" if hover_color else "background-color: rgba(0,0,0,0.08);"
+        bg_hover = f"background-color: {hover_color};" if hover_color else f"background-color: {self.theme.hover_bg};"
 
         btn.setStyleSheet(f"""
             QPushButton {{ background: transparent; border: none; border-radius: 18px; }}
@@ -100,7 +101,7 @@ class CustomTitleBar(QWidget):
     def update_maximize_icon(self, is_maximized):
         """更新最大化图标"""
         icon = 'fa5s.window-restore' if is_maximized else 'fa5s.window-maximize'
-        self.maximize_btn.setIcon(qta.icon(icon, color=Colors.TEXT_HEADER))
+        self.maximize_btn.setIcon(qta.icon(icon, color=self.theme.text_header))
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:

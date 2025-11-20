@@ -9,7 +9,7 @@ from PIL import Image
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QGroupBox, QFileDialog
 from PyQt6.QtCore import Qt, pyqtSignal
 import qtawesome as qta
-from ..styles import GenshinStyleSheet
+from ..styles.theme_base import ThemeManager
 
 
 class UploadPanel(QWidget):
@@ -21,6 +21,7 @@ class UploadPanel(QWidget):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.config = config
+        self.theme = ThemeManager.get_theme()
         self.image_paths = []
         self.images = []
         self._create_ui()
@@ -35,15 +36,15 @@ class UploadPanel(QWidget):
 
         # 上传按钮
         self.upload_btn = QPushButton("  Select Images / Folder")
-        self.upload_btn.setIcon(qta.icon('fa5s.images', color='#1F2329'))
-        self.upload_btn.setStyleSheet(GenshinStyleSheet.get_button_style('secondary'))
+        self.upload_btn.setIcon(qta.icon('fa5s.images', color=self.theme.text_primary))
+        self.upload_btn.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.upload_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.upload_btn.clicked.connect(self._upload_images)
         self.upload_btn.setMinimumHeight(45)
 
         # 图片计数标签
         self.img_count_label = QLabel("No images selected")
-        self.img_count_label.setStyleSheet("color: #6F7685; font-style: italic;")
+        self.img_count_label.setStyleSheet(f"color: {self.theme.text_secondary}; font-style: italic;")
         self.img_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         vbox.addWidget(self.upload_btn)
@@ -65,7 +66,7 @@ class UploadPanel(QWidget):
             self.config.last_images_files = list(paths)
 
             self.img_count_label.setText(f"{len(paths)} images selected")
-            self.img_count_label.setStyleSheet("color: #E3D2B6; font-weight: bold;")
+            self.img_count_label.setStyleSheet(f"color: {self.theme.text_highlight}; font-weight: bold;")
 
             # 发射信号
             self.images_selected.emit(self.image_paths, self.images)
@@ -78,7 +79,7 @@ class UploadPanel(QWidget):
                 self.image_paths = valid
                 self.images = [Image.open(p) for p in valid]
                 self.img_count_label.setText(f"{len(valid)} images loaded")
-                self.img_count_label.setStyleSheet("color: #E3D2B6; font-weight: bold;")
+                self.img_count_label.setStyleSheet(f"color: {self.theme.text_highlight}; font-weight: bold;")
                 # 发射信号
                 self.images_selected.emit(self.image_paths, self.images)
 
