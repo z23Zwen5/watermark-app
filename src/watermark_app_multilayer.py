@@ -10,15 +10,17 @@ from text_label_module import TextLabelConfig, draw_text_label
 
 class WatermarkLayer:
     """水印图层类"""
-    def __init__(self, image_path, opacity=100, blend_mode='normal'):
+    def __init__(self, image_path, opacity=100, blend_mode='normal', visible=True):
         self.image_path = image_path
         self.image = Image.open(image_path).convert("RGBA")
         self.opacity = int(opacity)  # 0-100，确保是整数
         self.blend_mode = blend_mode  # normal, overlay, screen, soft_light
+        self.visible = visible  # 图层可见性（类似 Photoshop）
         self.name = os.path.basename(image_path)
 
     def __str__(self):
-        return f"{self.name} ({self.blend_mode}, {self.opacity}%)"
+        visibility = "👁️" if self.visible else "🚫"
+        return f"{visibility} {self.name} ({self.blend_mode}, {self.opacity}%)"
 
 class MultiLayerWatermarkApp:
     def __init__(self, root):
@@ -190,6 +192,8 @@ class MultiLayerWatermarkApp:
         }
 
         tk.Button(btn_frame, text="+ Add Layer", command=self.add_watermark_layer,
+                 **button_style).pack(side=tk.LEFT, padx=(0, 5))
+        tk.Button(btn_frame, text="👁️ Toggle", command=self.toggle_layer_visibility,
                  **button_style).pack(side=tk.LEFT, padx=(0, 5))
         tk.Button(btn_frame, text="× Remove", command=self.remove_selected_layer,
                  **button_style).pack(side=tk.LEFT, padx=(0, 5))
@@ -563,6 +567,29 @@ class MultiLayerWatermarkApp:
             self.on_layer_select(None)
             self.save_config()
 
+    def toggle_layer_visibility(self):
+        """切换图层可见性（类似 Photoshop 的眼睛图标）"""
+        selection = self.layer_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("Warning", "请先选择一个图层！")
+            return
+
+        index = selection[0]
+        layer = self.watermark_layers[index]
+
+        # 切换可见性
+        layer.visible = not layer.visible
+
+        # 更新列表显示（保持选中状态）
+        self.update_layer_listbox_silent(selected_index=index)
+
+        # 保存配置
+        self.save_config()
+
+        # 提示用户
+        status = "可见" if layer.visible else "隐藏"
+        print(f"图层 [{index+1}] {layer.name} 已设置为{status}")
+
     def update_layer_listbox(self):
         """更新图层列表显示"""
         self.layer_listbox.delete(0, tk.END)
@@ -675,6 +702,10 @@ class MultiLayerWatermarkApp:
 
         # 逐层应用水印
         for layer_idx, layer in enumerate(self.watermark_layers):
+            # 跳过不可见的图层
+            if not layer.visible:
+                continue
+
             # 计算水印尺寸（缓存计算结果）
             if stretch:
                 new_width, new_height = img_width, img_height
@@ -819,7 +850,8 @@ class MultiLayerWatermarkApp:
                             layer = WatermarkLayer(
                                 layer_info['path'],
                                 int(layer_info.get('opacity', 100)),  # 确保转换为整数
-                                str(layer_info.get('blend_mode', 'normal'))  # 确保转换为字符串
+                                str(layer_info.get('blend_mode', 'normal')),  # 确保转换为字符串
+                                bool(layer_info.get('visible', True))  # 图层可见性，默认可见
                             )
                             self.watermark_layers.append(layer)
 
@@ -851,7 +883,8 @@ class MultiLayerWatermarkApp:
                 layers_info.append({
                     'path': layer.image_path,
                     'opacity': int(layer.opacity),  # 确保保存为整数
-                    'blend_mode': str(layer.blend_mode)  # 确保保存为字符串
+                    'blend_mode': str(layer.blend_mode),  # 确保保存为字符串
+                    'visible': bool(layer.visible)  # 图层可见性
                 })
 
             config = {
