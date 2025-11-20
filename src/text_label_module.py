@@ -355,18 +355,25 @@ class TextLabelDrawer:
         font = self.get_font(actual_font_size)
 
         # 计算文本尺寸（根据文字方向）
+        # 用于存储文本边界框的偏移量
+        text_bbox_offset_x = 0
+        text_bbox_offset_y = 0
+
         if self.config.orientation == TextLabelConfig.ORIENTATION_VERTICAL:
             # 竖向排布：逐字符测量，垂直堆叠
             char_heights = []
             max_char_width = 0
+            char_bboxes = []
 
             for char in label_text:
                 try:
                     bbox = draw.textbbox((0, 0), char, font=font)
                     char_width = bbox[2] - bbox[0]
                     char_height = bbox[3] - bbox[1]
+                    char_bboxes.append(bbox)
                 except AttributeError:
                     char_width, char_height = draw.textsize(char, font=font)
+                    char_bboxes.append(None)
 
                 char_heights.append(char_height)
                 max_char_width = max(max_char_width, char_width)
@@ -374,15 +381,24 @@ class TextLabelDrawer:
             # 竖向排布的总尺寸
             text_width = max_char_width
             text_height = sum(char_heights)
+
+            # 获取第一个字符的偏移量（用于对齐）
+            if char_bboxes and char_bboxes[0] is not None:
+                text_bbox_offset_x = char_bboxes[0][0]
+                text_bbox_offset_y = char_bboxes[0][1]
         else:
             # 横向排布（默认）
             try:
                 bbox = draw.textbbox((0, 0), label_text, font=font)
                 text_width = bbox[2] - bbox[0]
                 text_height = bbox[3] - bbox[1]
+                # 保存偏移量，用于对齐背景框和文字
+                text_bbox_offset_x = bbox[0]
+                text_bbox_offset_y = bbox[1]
             except AttributeError:
                 # 旧版本 Pillow 的兼容方案
                 text_width, text_height = draw.textsize(label_text, font=font)
+                # textsize 没有偏移量
 
         # 计算背景框尺寸
         box_width = text_width + 2 * self.config.padding_x
@@ -421,13 +437,13 @@ class TextLabelDrawer:
                 fill=bg_color_with_alpha
             )
 
-        # 绘制文本
+        # 绘制文本（减去偏移量以对齐背景框）
         text_color_with_alpha = text_color + (255,)  # 文字不透明
 
         if self.config.orientation == TextLabelConfig.ORIENTATION_VERTICAL:
             # 竖向排布：逐字符绘制
-            text_x = x + self.config.padding_x
-            text_y = y + self.config.padding_y
+            text_x = x + self.config.padding_x - text_bbox_offset_x
+            text_y = y + self.config.padding_y - text_bbox_offset_y
 
             for i, char in enumerate(label_text):
                 draw.text((text_x, text_y), char, fill=text_color_with_alpha, font=font)
@@ -442,8 +458,9 @@ class TextLabelDrawer:
                 text_y += char_height
         else:
             # 横向排布（默认）
-            text_x = x + self.config.padding_x
-            text_y = y + self.config.padding_y
+            # 减去偏移量，使文字和背景框完美对齐
+            text_x = x + self.config.padding_x - text_bbox_offset_x
+            text_y = y + self.config.padding_y - text_bbox_offset_y
             draw.text((text_x, text_y), label_text, fill=text_color_with_alpha, font=font)
 
         # 合并图层
