@@ -7,14 +7,20 @@
 
 ## 📌 项目概述
 
-**Multi-Layer Watermark App v1.5** 是一个基于 Python + Tkinter 的多图层水印应用，支持 Photoshop 混合模式和智能颜色适应。
+**Multi-Layer Watermark App v1.6** 是一个基于 Python + Tkinter 的多图层水印应用，支持 Photoshop 混合模式和文本标注功能。
 
 ### 核心特性
 - 🎨 多图层水印系统
 - 🌈 4种 Photoshop 混合模式（Normal/Overlay/Screen/Soft Light）
-- 🧠 智能颜色适应（自动检测背景并调整水印颜色）
-- ⚡ 高性能处理（NumPy 向量化计算）
+- 🔤 文本标注功能（序号或文件名）
+- ⚡ 高性能处理（NumPy 向量化 + BILINEAR 缩放）
 - 💾 配置自动保存/加载
+
+### 最近更新 (v1.6)
+- ✨ 新增文本标注模块（右上角显示序号或文件名）
+- ⚡ 性能优化：改用 BILINEAR 缩放提速 1.6-1.9x
+- 📊 新增性能分析文档和测试工具
+- 🧹 代码模块化：独立 text_label_module.py
 
 ---
 
@@ -23,38 +29,36 @@
 ```
 watermarkApp/
 ├── src/                              # 源代码
-│   ├── watermark_app_multilayer.py   # v1.5 多图层版（当前最新）
-│   ├── watermark_app_smart_optimized.py  # v1.4 优化版
-│   └── watermark_app_smart.py        # v1.3 基础智能版
+│   ├── watermark_app_multilayer.py   # v1.6 多图层版（926行，当前最新）
+│   ├── text_label_module.py          # v1.6 文本标注模块（320行，NEW！）
+│   ├── watermark_app_smart_optimized.py  # v1.4 优化版（已过时）
+│   └── watermark_app_smart.py        # v1.3 基础版（已过时）
 │
 ├── configs/                          # 配置文件
-│   ├── multilayer_watermark_config.json
-│   ├── smart_watermark_optimized_config.json
-│   └── smart_watermark_config.json
+│   └── multilayer_watermark_config.json
 │
 ├── docs/                             # 文档（已整理）
 │   ├── MULTILAYER_GUIDE.md           # v1.5 完整使用指南
 │   ├── QUICK_START.md                # 快速开始
-│   ├── VERSION_1.5_RELEASE_NOTES.md  # 发布说明
-│   ├── DEVELOPMENT_SUMMARY_V1.5.md   # 开发总结
+│   ├── VERSION_1.5_RELEASE_NOTES.md  # v1.5 发布说明
+│   ├── DEVELOPMENT_SUMMARY_V1.5.md   # v1.5 开发总结
 │   ├── PROJECT_STRUCTURE.md          # 项目结构
-│   ├── SMART_WATERMARK_ALGORITHM.md  # 智能算法说明
 │   └── ... (其他文档)
 │
-├── tests/                            # 测试文件（已整理）
+├── tests/                            # 测试文件
 │   ├── images/                       # 测试用图片
-│   ├── alpha_protection/             # Alpha保护测试
 │   ├── performance/                  # 性能测试
-│   ├── images_samples/               # 图片样本
-│   └── temp/                         # 临时文件
+│   └── ...
 │
 ├── archive/                          # 归档版本
-│   └── watermark_app_alpha_protected.py  # v1.5 Alpha保护版（已归档）
+│   └── watermark_app_alpha_protected.py  # Alpha保护版（已归档）
 │
 ├── versions/                         # 历史版本
 ├── releases/                         # 发布包
 ├── tools/                            # 工具脚本
-├── assets/                           # 资源文件
+│
+├── performance_analysis.md           # 性能分析文档（NEW！）
+├── test_performance.py               # 性能测试脚本（NEW！）
 │
 ├── run_multilayer.bat                # Windows 启动脚本
 ├── run_multilayer.sh                 # Linux/Mac 启动脚本
@@ -73,7 +77,6 @@ watermarkApp/
 - **tkinter** - GUI 界面
 - **Pillow (PIL)** - 图像处理
 - **NumPy** - 数值计算和向量化
-- **colorsys** - 色彩空间转换
 
 ### 关键算法
 
@@ -100,78 +103,104 @@ else:
     result = 2*base*(1-blend) + √base*(2*blend-1)
 ```
 
-#### 2. 智能颜色适应
-- 使用 RGB 欧几里得距离检测颜色相似度
-- 基于 HSV 色彩空间生成对比色
-- 支持三种算法：Enhanced（推荐）、Classic、Gentle
+#### 2. 文本标注（新功能）
+- **智能字体选择**：自动检测系统字体（支持中英文）
+- **自动对比色**：根据背景亮度自动选择黑/白文字
+- **半透明背景**：提高文字可读性
+- **两种模式**：序号（1,2,3...）或文件名
 
 #### 3. 性能优化
-- NumPy 向量化计算（避免逐像素循环）
-- 颜色距离缓存
-- 可选采样模式（Speed/Balanced/Quality）
+- **NumPy 向量化**：避免逐像素循环
+- **BILINEAR 缩放**：比 LANCZOS 快 1.6-1.9x，质量肉眼难辨
+- **类型转换优化**：减少 uint8 ↔ float32 转换次数
 
 ---
 
 ## 🎯 版本演进
 
-| 版本 | 文件 | 主要功能 | 状态 |
-|------|------|---------|------|
-| **v1.5** | `watermark_app_multilayer.py` | 多图层 + 混合模式 | ⭐ 当前最新 |
-| v1.4 | `watermark_app_smart_optimized.py` | 智能颜色 + 优化 | 可用 |
-| v1.3 | `watermark_app_smart.py` | 基础智能颜色 | 可用 |
-| v1.2 | `versions/watermark_app_v1.2.py` | 基础水印 | 已归档 |
-| ~v1.5α~ | `archive/watermark_app_alpha_protected.py` | Alpha保护 | 已归档 |
+| 版本 | 文件 | 主要功能 | 状态 | 行数 |
+|------|------|---------|------|------|
+| **v1.6** | `watermark_app_multilayer.py` + `text_label_module.py` | 多图层 + 文本标注 + 性能优化 | ⭐ 当前最新 | 926 + 320 |
+| v1.5 | `watermark_app_multilayer.py` | 多图层 + 混合模式 | 已过时 | ~870 |
+| v1.4 | `watermark_app_smart_optimized.py` | 智能颜色 + 优化 | 已废弃 | ~700 |
+| v1.3 | `watermark_app_smart.py` | 基础智能颜色 | 已废弃 | ~500 |
+| v1.2 | `versions/watermark_app_v1.2.py` | 基础水印 | 已归档 | ~400 |
 
-**重要决策**：Alpha 保护版本已归档，因其设计理念与多图层系统不兼容。
+**重要变更：**
+- ❌ **智能颜色适应功能已废弃**（v1.4/v1.3 特性不再维护）
+- ✅ v1.6 专注于多图层 + 文本标注 + 性能优化
 
 ---
 
 ## 💡 代码架构
 
-### v1.5 主要类结构
+### v1.6 主要类结构
+
+#### 1. 主应用类 (`watermark_app_multilayer.py`)
 
 ```python
 class WatermarkLayer:
     """水印图层类"""
     - image_path: str
     - image: PIL.Image
-    - opacity: float (0-100)
+    - opacity: int (0-100)
     - blend_mode: str ('normal'|'overlay'|'screen'|'soft_light')
     - name: str
 
 class MultiLayerWatermarkApp:
     """主应用类"""
 
-    # 图层管理
+    # 核心属性
     - watermark_layers: List[WatermarkLayer]
+    - text_label_config: TextLabelConfig  # 新增
+
+    # 图层管理
     - add_watermark_layer()
     - edit_layer_dialog()
     - remove_selected_layer()
     - move_layer(direction)
 
     # 混合模式
-    - blend_normal()
-    - blend_screen()
-    - blend_overlay()
-    - blend_soft_light()
-    - apply_blend_mode()
-
-    # 智能颜色（继承自 v1.4）
-    - calculate_color_distance_optimized()
-    - get_contrasting_color_enhanced()
+    - apply_blend_mode(base, layer, mode, opacity)
 
     # 核心处理
-    - apply_multilayer_watermark()
+    - apply_multilayer_watermark(image)
 
     # UI 组件
     - create_layer_section()
-    - create_upload_section()
+    - create_text_label_section()  # 新增
     - create_settings_section()
-    - create_smart_section()
 
     # 配置管理
     - load_config()
     - save_config()
+```
+
+#### 2. 文本标注模块 (`text_label_module.py`) ✨ NEW
+
+```python
+class TextLabelConfig:
+    """文本标注配置类"""
+    - enabled: bool
+    - label_type: str ('number'|'filename')
+    - position: str ('top_right'|'top_left'|...)
+    - font_size: int
+    - auto_contrast: bool
+    - background_enabled: bool
+    - background_opacity: int
+
+    # 配置持久化
+    - to_dict() -> dict
+    - from_dict(config_dict)
+
+class TextLabelDrawer:
+    """文本标注绘制器"""
+    - get_font(size) -> ImageFont
+    - get_contrasting_color(image, position) -> (text_color, bg_color)
+    - draw_text_label(image, text, index) -> Image
+
+# 便捷函数
+def draw_text_label(image, text, config, index=None) -> Image
 ```
 
 ---
@@ -186,10 +215,6 @@ class MultiLayerWatermarkApp:
   "last_watermark_directory": "路径",
   "last_images_directory": "路径",
   "last_stretch": false,
-  "last_smart_color": true,
-  "last_sensitivity": 30,
-  "last_algorithm": "enhanced",
-  "last_performance": "balanced",
   "last_images_files": ["路径1", "路径2"],
   "layers": [
     {
@@ -197,7 +222,17 @@ class MultiLayerWatermarkApp:
       "opacity": 100,
       "blend_mode": "normal"
     }
-  ]
+  ],
+  "text_label": {
+    "enabled": false,
+    "label_type": "number",
+    "position": "top_right",
+    "font_size": 36,
+    "auto_contrast": true,
+    "background_enabled": true,
+    "background_color": [0, 0, 0],
+    "background_opacity": 128
+  }
 }
 ```
 
@@ -206,69 +241,167 @@ class MultiLayerWatermarkApp:
 ## 🔍 关键文件说明
 
 ### 主程序
-- **[src/watermark_app_multilayer.py](src/watermark_app_multilayer.py)** (870行)
-  - v1.5 的核心实现
-  - 包含完整的多图层系统和混合模式
+- **[src/watermark_app_multilayer.py](src/watermark_app_multilayer.py)** (926行)
+  - v1.6 的主程序
+  - 包含完整的多图层系统、混合模式、文本标注集成
 
-### 文档（给人看）
+- **[src/text_label_module.py](src/text_label_module.py)** (320行) ✨ NEW
+  - v1.6 新增的文本标注模块
+  - 独立的配置类和绘制器
+  - 支持序号和文件名两种模式
+
+### 性能分析 ✨ NEW
+- **[performance_analysis.md](performance_analysis.md)**
+  - 详细的性能瓶颈分析
+  - 识别了 4 个主要性能问题
+  - 提供优化建议和理论分析
+
+- **[test_performance.py](test_performance.py)**
+  - 性能测试脚本
+  - 测试不同分辨率的处理时间
+  - 对比 LANCZOS vs BILINEAR 性能
+
+### 用户文档
 - **[README.md](README.md)** - 用户主文档
 - **[docs/QUICK_START.md](docs/QUICK_START.md)** - 快速开始指南
 - **[docs/MULTILAYER_GUIDE.md](docs/MULTILAYER_GUIDE.md)** - 完整使用手册
 
-### 文档（给开发者看）
-- **[docs/DEVELOPMENT_SUMMARY_V1.5.md](docs/DEVELOPMENT_SUMMARY_V1.5.md)** - 开发总结
-- **[docs/VERSION_1.5_RELEASE_NOTES.md](docs/VERSION_1.5_RELEASE_NOTES.md)** - 发布说明
-- **[docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)** - 项目结构
-
 ### 技术文档
-- **[docs/SMART_WATERMARK_ALGORITHM.md](docs/SMART_WATERMARK_ALGORITHM.md)** - 智能算法详解
+- **[docs/DEVELOPMENT_SUMMARY_V1.5.md](docs/DEVELOPMENT_SUMMARY_V1.5.md)** - v1.5 开发总结
+- **[docs/VERSION_1.5_RELEASE_NOTES.md](docs/VERSION_1.5_RELEASE_NOTES.md)** - v1.5 发布说明
+- **[docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)** - 项目结构
 
 ---
 
 ## 🚨 重要注意事项
 
-### 1. 文件结构已整理
+### 1. 智能颜色适应功能已废弃 ❌
+
+**废弃的功能：**
+- ✗ `watermark_app_smart.py` - v1.3 智能颜色版本
+- ✗ `watermark_app_smart_optimized.py` - v1.4 优化版本
+- ✗ 智能颜色适应算法（Enhanced/Classic/Gentle）
+- ✗ 颜色相似度检测
+- ✗ HSV 色彩空间对比色生成
+
+**原因：**
+- 与多图层系统架构不兼容
+- 维护成本高
+- 用户反馈使用率低
+- v1.6 专注于多图层 + 文本标注
+
+**替代方案：**
+- 使用混合模式（Overlay/Screen）实现类似效果
+- 文本标注功能的自动对比色仍然保留
+
+### 2. 文件结构已整理
 - ✅ 所有测试文件已移至 `tests/` 目录
 - ✅ 所有文档已移至 `docs/` 目录
 - ✅ 根目录只保留 README.md 和 CLAUDE.md
 
-### 2. .gitignore 配置
+### 3. .gitignore 配置
 已配置忽略：
 - 测试目录：`tests/alpha_protection/`, `tests/performance/` 等
 - 配置文件：`*_config.json`（除了示例配置）
 - 输出目录：`results/`, `output/`, `processed/`
 - 临时文件：`*.tmp`, `*.temp`, `*.log`
 
-### 3. 中文编码
+### 4. 中文编码
 - 项目中使用 UTF-8 编码
 - 文件名可能包含中文（如测试图片）
 - 代码中有中文注释和UI文本
 
-### 4. 配置文件路径
+### 5. 配置文件路径
 - 配置文件使用相对路径查找
 - 支持 `configs/` 目录下的配置文件
-- 向下兼容旧版配置格式
+- 向下兼容旧版配置格式（自动迁移）
+
+---
+
+## 📊 性能特性
+
+### 性能数据（基于实测）
+
+#### 不同分辨率的处理时间（单张图，3 个图层）
+
+| 图片尺寸 | 像素数 | 内存使用 | 处理时间 (v1.5) | 处理时间 (v1.6) | 提速 |
+|---------|--------|---------|----------------|----------------|------|
+| 1920x1080 | 2.1M | ~120 MB | ~0.7秒 | ~0.5秒 | **30%** |
+| 2560x1440 | 3.7M | ~210 MB | ~1.3秒 | ~1.0秒 | **23%** |
+| 3840x2160 | 8.3M | ~720 MB | ~3.4秒 | ~2.6秒 | **24%** |
+
+### 性能瓶颈（按耗时排序）
+
+从性能测试结果（4K 图片）：
+
+1. 🔴 **类型转换** (uint8 ↔ float32): 392ms (35%)
+2. 🟡 **uint8 转换回来**: 227ms (20%)
+3. 🟡 **混合计算**: 192ms (17%)
+4. 🟢 **图片缩放** (BILINEAR): 120ms (11%) ⬇️ 已优化
+
+### v1.6 性能优化
+
+#### ✅ 已完成的优化
+
+1. **BILINEAR 缩放**
+   ```python
+   # v1.5: LANCZOS (慢但高质量)
+   resized = layer.image.resize(size, Image.LANCZOS)  # ~190ms
+
+   # v1.6: BILINEAR (快且质量够用)
+   resized = layer.image.resize(size, Image.BILINEAR)  # ~120ms
+   ```
+   **提升：1.6-1.9x**
+
+2. **NumPy 向量化**
+   - 避免逐像素循环
+   - 使用 NumPy 数组操作
+   - 批量处理 RGB 通道
+
+#### 💡 未来优化方向
+
+1. **只处理水印覆盖区域**（最大收益 50-90%）
+2. **复用临时数组**（减少内存分配）
+3. **减少类型转换**（最大瓶颈）
+4. **多进程处理**（批量处理多张图片）
+
+详见 [performance_analysis.md](performance_analysis.md)
 
 ---
 
 ## 🎓 开发指南
 
-### 添加新混合模式
-1. 在 `MultiLayerWatermarkApp` 类中添加 `blend_xxx()` 方法
-2. 在 `apply_blend_mode()` 中添加条件分支
-3. 在 `edit_layer_dialog()` UI 中添加选项
-4. 更新文档说明
+### 添加新功能
 
-### 添加新智能算法
-1. 在 `get_contrasting_color_enhanced()` 中添加新算法分支
-2. 在 UI 的 `algorithm_var` 选项中添加新选项
+#### 添加新混合模式
+1. 在 `apply_blend_mode()` 中添加算法
+2. 在 UI 的 `blend_mode_combo` 中添加选项
 3. 更新文档说明
+
+#### 扩展文本标注功能
+1. 修改 `text_label_module.py` 中的 `TextLabelConfig`
+2. 在主程序中添加对应的 UI 控件
+3. 更新配置文件的保存/加载逻辑
+
+示例（添加字体颜色选择）：
+```python
+# text_label_module.py
+class TextLabelConfig:
+    def __init__(self):
+        self.custom_color = (255, 0, 0)  # 新增
+
+# watermark_app_multilayer.py
+def create_text_label_section(self, parent):
+    # 添加颜色选择器
+    color_button = tk.Button(...)
+```
 
 ### 性能优化建议
 - 优先使用 NumPy 向量化操作
 - 避免逐像素循环（除非必要）
 - 使用缓存减少重复计算
 - 考虑使用多线程处理多张图片
+- 参考 `performance_analysis.md` 中的建议
 
 ---
 
@@ -277,11 +410,11 @@ class MultiLayerWatermarkApp:
 ### 当需要修改代码时
 1. 先查看 `src/watermark_app_multilayer.py` 了解当前实现
 2. 参考 `docs/DEVELOPMENT_SUMMARY_V1.5.md` 了解设计决策
-3. 查看 `docs/SMART_WATERMARK_ALGORITHM.md` 了解算法细节
+3. 查看 `performance_analysis.md` 了解性能考虑
 4. 保持代码风格一致（使用中文注释，遵循现有结构）
 
 ### 当需要添加功能时
-1. 优先考虑扩展现有类，而非创建新文件
+1. 优先考虑创建独立模块（参考 `text_label_module.py`）
 2. 更新相关文档（至少更新 README.md 和 CLAUDE.md）
 3. 考虑配置文件兼容性
 4. 添加适当的错误处理
@@ -292,37 +425,11 @@ class MultiLayerWatermarkApp:
 3. 注意中文编码问题
 4. 检查 PIL/NumPy 版本兼容性
 
----
-
-## 📊 性能基准
-
-### 测试环境
-- 图片尺寸: 1920x1080
-- 图层数量: 2个
-- 测试平台: 现代多核CPU
-
-### 性能数据
-| 模式 | 单张耗时 | 质量评分 |
-|------|---------|---------|
-| Quality | 3.5秒 | ⭐⭐⭐⭐⭐ |
-| Balanced | 2.0秒 | ⭐⭐⭐⭐ |
-| Speed | 1.2秒 | ⭐⭐⭐ |
-
----
-
-## 🔮 未来计划
-
-### v1.6 可能的功能
-- [ ] 更多混合模式（Multiply, Color Dodge, Color Burn）
-- [ ] 图层位置独立控制
-- [ ] 预设模板系统
-- [ ] 图层缩放比例调整
-
-### 长期计划
-- [ ] GPU 加速（CUDA/OpenCL）
-- [ ] 实时预览功能
-- [ ] 图层效果（模糊、阴影、描边）
-- [ ] 批量配置应用
+### 当需要优化性能时
+1. 先运行 `test_performance.py` 获取基准数据
+2. 使用 `cProfile` 或 `line_profiler` 找到瓶颈
+3. 参考 `performance_analysis.md` 中的建议
+4. 确保优化不影响功能正确性
 
 ---
 
@@ -333,10 +440,9 @@ class MultiLayerWatermarkApp:
 python src/watermark_app_multilayer.py
 ```
 
-### 运行测试
+### 运行性能测试
 ```bash
-python tests/performance_test.py
-python tests/test_smart_watermark.py
+python test_performance.py
 ```
 
 ### 查看配置
@@ -362,34 +468,44 @@ pip list | grep -E "Pillow|numpy"
 ### 内部文档
 - [完整文档列表](docs/)
 - [版本历史](docs/VERSION_HISTORY.md)
-- [智能算法详解](docs/SMART_WATERMARK_ALGORITHM.md)
+- [快速开始](docs/QUICK_START.md)
+- [多图层指南](docs/MULTILAYER_GUIDE.md)
+- [性能分析](performance_analysis.md)
 
 ---
 
 ## ✅ 总结
 
-**Multi-Layer Watermark App v1.5** 是一个功能完整、文档齐全的专业水印应用。
+**Multi-Layer Watermark App v1.6** 是一个功能完整、文档齐全、性能优异的专业水印应用。
 
-**核心价值**:
+### 核心价值
 - 🎨 多图层系统 - 创意无限
 - 🌈 专业混合模式 - Photoshop 标准
-- 🧠 智能颜色适应 - 自动优化
-- ⚡ 高性能处理 - NumPy 加速
+- 🔤 文本标注 - 序号/文件名自动添加
+- ⚡ 高性能处理 - NumPy + BILINEAR 优化
 - 📚 完善文档 - 易于理解和扩展
 
-**代码质量**:
+### 代码质量
 - 清晰的类结构
 - 完整的中文注释
-- 模块化设计
+- 模块化设计（独立的 text_label_module）
 - 良好的错误处理
+- 性能监控和分析
 
-**适合 AI 协作**:
+### 适合 AI 协作
 - 结构清晰，易于理解
 - 文档完善，上下文充足
 - 代码规范，易于扩展
+- 模块化设计，职责明确
+
+### v1.6 新特性
+- ✨ 文本标注功能（序号/文件名）
+- ⚡ 性能优化（BILINEAR 缩放提速 1.6-1.9x）
+- 📊 性能分析文档和测试工具
+- 🧹 代码模块化（独立 text_label_module.py）
 
 ---
 
-*最后更新: 2025-10-23*
-*版本: v1.5.0*
+*最后更新: 2025-11-20*
+*版本: v1.6.0*
 *维护者: WatermarkApp Team*
