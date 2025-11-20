@@ -406,9 +406,27 @@ class MultiLayerWatermarkApp(QMainWindow):
                 background-color: #FFFFFF;
                 border: 2px solid #BFA065;
                 border-radius: 8px;
+                color: #2B3041;
                 selection-background-color: #D3BC8E;
                 selection-color: #1C2333;
                 outline: none;
+                padding: 4px;
+            }
+
+            QComboBox QAbstractItemView::item {
+                color: #2B3041;
+                padding: 6px 12px;
+                min-height: 24px;
+            }
+
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #D3BC8E;
+                color: #1C2333;
+            }
+
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #FFF8E1;
+                color: #1C2333;
             }
 
             /* Line Edit */
@@ -711,8 +729,33 @@ class MultiLayerWatermarkApp(QMainWindow):
         row4.setSpacing(8)
         row4.addWidget(QLabel("Font:"))
         self.label_font_combo = QComboBox()
-        system_fonts = get_system_fonts()
-        self.label_font_combo.addItems(['(Auto)'] + sorted(system_fonts.keys())[:10])  # Limit to first 10 fonts
+
+        try:
+            system_fonts = get_system_fonts()
+
+            # Common fonts to prioritize (available on most systems)
+            common_fonts = [
+                'Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Georgia',
+                'Impact', 'Times New Roman', 'Trebuchet MS', 'Verdana',
+                'Microsoft YaHei', 'SimHei', 'SimSun', 'KaiTi', 'FangSong',
+                'Helvetica', 'Helvetica Neue', 'San Francisco', 'Segoe UI',
+                'Roboto', 'Ubuntu', 'DejaVu Sans', 'Liberation Sans'
+            ]
+
+            # Filter to only available fonts
+            available_common = [f for f in common_fonts if f in system_fonts]
+
+            # Add fonts: Auto + common fonts + rest (up to 30 total)
+            all_fonts = ['(Auto)'] + available_common
+            remaining = [f for f in sorted(system_fonts.keys()) if f not in available_common]
+            all_fonts.extend(remaining[:max(0, 30 - len(all_fonts))])
+
+            self.label_font_combo.addItems(all_fonts)
+            print(f"✦ Loaded {len(all_fonts)} fonts (including Auto)")
+        except Exception as e:
+            print(f"! Font loading error: {e}")
+            self.label_font_combo.addItems(['(Auto)', 'Arial', 'Courier New', 'Times New Roman'])
+
         self.label_font_combo.setCurrentText(self.text_label_config.font_name or '(Auto)')
         self.label_font_combo.currentTextChanged.connect(self.on_label_font_change)
         row4.addWidget(self.label_font_combo, 1)
