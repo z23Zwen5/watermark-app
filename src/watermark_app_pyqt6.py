@@ -1292,7 +1292,9 @@ class MultiLayerWatermarkApp(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
+
+    # High DPI support is enabled by default in Qt6/PyQt6
+    # No need to set AA_UseHighDpiPixmaps or AA_EnableHighDpiScaling
 
     main_window = MultiLayerWatermarkApp()
     main_window.show()
