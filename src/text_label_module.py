@@ -113,16 +113,22 @@ class TextLabelConfig:
     POSITION_TOP_LEFT = 'top_left'
     POSITION_BOTTOM_RIGHT = 'bottom_right'
     POSITION_BOTTOM_LEFT = 'bottom_left'
+    POSITION_CENTER = 'center'
 
     # 标注类型
     LABEL_TYPE_NUMBER = 'number'      # 序号 (1, 2, 3...)
     LABEL_TYPE_FILENAME = 'filename'  # 文件名
+
+    # 文字方向常量
+    ORIENTATION_HORIZONTAL = 'horizontal'  # 横向排布（左到右）
+    ORIENTATION_VERTICAL = 'vertical'      # 竖向排布（上到下）
 
     def __init__(self):
         # 基础设置
         self.enabled = False
         self.label_type = self.LABEL_TYPE_NUMBER
         self.position = self.POSITION_TOP_RIGHT
+        self.orientation = self.ORIENTATION_HORIZONTAL  # 文字方向（横向/竖向）
 
         # 文本样式
         self.font_size = 3.0  # 字体大小百分比（相对于图片高度）
@@ -147,6 +153,7 @@ class TextLabelConfig:
             'enabled': self.enabled,
             'label_type': self.label_type,
             'position': self.position,
+            'orientation': self.orientation,
             'font_size': self.font_size,
             'font_name': self.font_name,
             'text_color': list(self.text_color),
@@ -165,6 +172,7 @@ class TextLabelConfig:
         self.enabled = config_dict.get('enabled', False)
         self.label_type = config_dict.get('label_type', self.LABEL_TYPE_NUMBER)
         self.position = config_dict.get('position', self.POSITION_TOP_RIGHT)
+        self.orientation = config_dict.get('orientation', self.ORIENTATION_HORIZONTAL)
 
         # 字体大小：兼容旧配置（像素值 > 15 视为旧格式）
         font_size = config_dict.get('font_size', 3.0)
@@ -255,7 +263,7 @@ class TextLabelDrawer:
 
         Args:
             image: PIL Image对象
-            position: 标注位置 (top_right, top_left, bottom_right, bottom_left)
+            position: 标注位置 (top_right, top_left, bottom_right, bottom_left, center)
 
         Returns:
             (text_color, bg_color) 元组
@@ -271,8 +279,15 @@ class TextLabelDrawer:
             box = (0, 0, min(width, sample_size), min(height, sample_size))
         elif position == TextLabelConfig.POSITION_BOTTOM_RIGHT:
             box = (max(0, width - sample_size), max(0, height - sample_size), width, height)
-        else:  # BOTTOM_LEFT
+        elif position == TextLabelConfig.POSITION_BOTTOM_LEFT:
             box = (0, max(0, height - sample_size), min(width, sample_size), height)
+        else:  # CENTER
+            # 中心区域采样
+            center_x = width // 2
+            center_y = height // 2
+            half_sample = sample_size // 2
+            box = (max(0, center_x - half_sample), max(0, center_y - half_sample),
+                   min(width, center_x + half_sample), min(height, center_y + half_sample))
 
         # 裁剪并转换为RGB
         region = image.crop(box)
@@ -339,14 +354,35 @@ class TextLabelDrawer:
         actual_font_size = max(12, min(actual_font_size, 500))
         font = self.get_font(actual_font_size)
 
-        # 获取文本边界框（使用 textbbox）
-        try:
-            bbox = draw.textbbox((0, 0), label_text, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
-        except AttributeError:
-            # 旧版本 Pillow 的兼容方案
-            text_width, text_height = draw.textsize(label_text, font=font)
+        # 计算文本尺寸（根据文字方向）
+        if self.config.orientation == TextLabelConfig.ORIENTATION_VERTICAL:
+            # 竖向排布：逐字符测量，垂直堆叠
+            char_heights = []
+            max_char_width = 0
+
+            for char in label_text:
+                try:
+                    bbox = draw.textbbox((0, 0), char, font=font)
+                    char_width = bbox[2] - bbox[0]
+                    char_height = bbox[3] - bbox[1]
+                except AttributeError:
+                    char_width, char_height = draw.textsize(char, font=font)
+
+                char_heights.append(char_height)
+                max_char_width = max(max_char_width, char_width)
+
+            # 竖向排布的总尺寸
+            text_width = max_char_width
+            text_height = sum(char_heights)
+        else:
+            # 横向排布（默认）
+            try:
+                bbox = draw.textbbox((0, 0), label_text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+            except AttributeError:
+                # 旧版本 Pillow 的兼容方案
+                text_width, text_height = draw.textsize(label_text, font=font)
 
         # 计算背景框尺寸
         box_width = text_width + 2 * self.config.padding_x
@@ -363,9 +399,12 @@ class TextLabelDrawer:
         elif self.config.position == TextLabelConfig.POSITION_BOTTOM_RIGHT:
             x = width - self.config.margin_x - box_width
             y = height - self.config.margin_y - box_height
-        else:  # BOTTOM_LEFT
+        elif self.config.position == TextLabelConfig.POSITION_BOTTOM_LEFT:
             x = self.config.margin_x
             y = height - self.config.margin_y - box_height
+        else:  # CENTER
+            x = (width - box_width) // 2
+            y = (height - box_height) // 2
 
         # 获取颜色
         if self.config.auto_contrast:
@@ -383,10 +422,29 @@ class TextLabelDrawer:
             )
 
         # 绘制文本
-        text_x = x + self.config.padding_x
-        text_y = y + self.config.padding_y
         text_color_with_alpha = text_color + (255,)  # 文字不透明
-        draw.text((text_x, text_y), label_text, fill=text_color_with_alpha, font=font)
+
+        if self.config.orientation == TextLabelConfig.ORIENTATION_VERTICAL:
+            # 竖向排布：逐字符绘制
+            text_x = x + self.config.padding_x
+            text_y = y + self.config.padding_y
+
+            for i, char in enumerate(label_text):
+                draw.text((text_x, text_y), char, fill=text_color_with_alpha, font=font)
+
+                # 计算下一个字符的Y位置
+                try:
+                    char_bbox = draw.textbbox((0, 0), char, font=font)
+                    char_height = char_bbox[3] - char_bbox[1]
+                except AttributeError:
+                    _, char_height = draw.textsize(char, font=font)
+
+                text_y += char_height
+        else:
+            # 横向排布（默认）
+            text_x = x + self.config.padding_x
+            text_y = y + self.config.padding_y
+            draw.text((text_x, text_y), label_text, fill=text_color_with_alpha, font=font)
 
         # 合并图层
         result = Image.alpha_composite(image, overlay)
