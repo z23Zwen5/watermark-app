@@ -2,7 +2,7 @@
 
 > 专业的多图层水印应用 | 支持 Photoshop 混合模式 + 文本标注
 
-[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](docs/VERSION_1.5_RELEASE_NOTES.md)
+[![Version](https://img.shields.io/badge/version-1.6.2-blue.svg)](docs/VERSION_1.5_RELEASE_NOTES.md)
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -12,8 +12,11 @@
 
 🎨 **多图层系统** - 支持无限制添加水印图层，自由组合
 🌈 **混合模式** - 4种专业 Photoshop 混合模式（Normal/Overlay/Screen/Soft Light）
+👁️ **图层可见性** - 一键隐藏/显示图层，无需删除（类似 Photoshop）
 🎚️ **精细控制** - 每层独立调整不透明度和混合效果
 🔤 **文本标注** - 自动添加序号或文件名，智能对比色
+🎨 **系统字体** - 自动扫描系统字体，像 Photoshop 一样选择字体
+📏 **百分比字体** - 字体大小基于图片高度，多分辨率一致
 ⚡ **高性能** - 优化算法，快速处理大图片
 💾 **自动保存** - 图层配置自动保存，下次启动恢复
 
@@ -62,11 +65,14 @@ python src/watermark_app_multilayer.py
 - 选择标注类型：
   - **Number**: 显示序号（1, 2, 3...）
   - **Filename**: 显示文件名
+- 选择系统字体（自动扫描已安装字体）
+- 调整字体大小（百分比，相对于图片高度）
 - 标注自动显示在图片右上角
 - 智能对比色：深色背景显示白字，浅色背景显示黑字
 
 ### 4️⃣ 管理图层
 - **编辑**: 选中图层，调整属性
+- **隐藏/显示**: 选中图层 → `👁️ Toggle` （类似 Photoshop）
 - **删除**: 选中图层 → `× Remove`
 - **排序**: `↑ Up` / `↓ Down`
 
@@ -139,13 +145,21 @@ python src/watermark_app_multilayer.py
 
 | 版本 | 主要功能 | 状态 |
 |------|---------|------|
-| **v1.6** | 多图层 + 文本标注 + 性能优化 | ⭐ 当前版本 |
+| **v1.6.2** | 图层可见性 + 系统字体 + 百分比字体 | ⭐ 当前版本 |
+| v1.6.0 | 多图层 + 文本标注 + 性能优化 | 可用 |
 | v1.5 | 多图层 + 混合模式 | 可用 |
 | v1.4 | 智能颜色 + 性能优化 | 已废弃 |
 | v1.3 | 基础智能颜色 | 已废弃 |
 | v1.2 | 基础水印功能 | 已归档 |
 
-### v1.6 新特性 ✨
+### v1.6.2 新特性 ✨
+
+- 👁️ **图层可见性切换**: 类似 Photoshop 的眼睛图标，一键隐藏/显示图层
+- 🎨 **系统字体选择**: 自动扫描系统已安装字体，下拉菜单选择（像 Photoshop）
+- 📏 **百分比字体大小**: 字体大小基于图片高度百分比（3% = 1080p 时 32px，4K 时 64px）
+- 🔄 **向后兼容**: 自动转换旧配置文件中的像素值为百分比
+
+### v1.6.0 核心功能
 
 - 🔤 **文本标注模块**: 独立的 `text_label_module.py`
 - ⚡ **性能优化**: BILINEAR 缩放，提速 1.6-1.9x
@@ -272,7 +286,7 @@ python test_performance.py
 
 ## 🎨 开始创作
 
-**Multi-Layer Watermark App v1.6** - 让每张图片都独一无二！
+**Multi-Layer Watermark App v1.6.2** - 让每张图片都独一无二！
 
 *现在就开始创作你的专属水印吧！* ✨
 

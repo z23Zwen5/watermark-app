@@ -7,16 +7,25 @@
 
 ## 📌 项目概述
 
-**Multi-Layer Watermark App v1.6** - 基于 Python + Tkinter 的专业多图层水印应用
+**Multi-Layer Watermark App v1.6.2** - 基于 Python + Tkinter 的专业多图层水印应用
 
 ### 核心特性
 - 🎨 多图层水印系统
 - 🌈 4种 Photoshop 混合模式（Normal/Overlay/Screen/Soft Light）
+- 👁️ 图层可见性切换（类似 Photoshop）
 - 🔤 文本标注（序号/文件名，智能对比色）
+- 🎨 系统字体选择（自动扫描已安装字体）
+- 📏 百分比字体大小（多分辨率一致）
 - ⚡ 高性能处理（NumPy 向量化 + uint8 优化）
 - 💾 配置自动保存/加载
 
-### v1.6 更新
+### v1.6.2 更新
+- 👁️ **图层可见性**: 类似 Photoshop 眼睛图标，隐藏/显示图层
+- 🎨 **系统字体**: 自动扫描 Windows/macOS/Linux 字体，下拉选择
+- 📏 **百分比字体**: 字体大小基于图片高度（3% = 1080p:32px, 4K:64px）
+- 🔄 **向后兼容**: 自动转换旧配置像素值为百分比
+
+### v1.6.0 核心功能
 - ✨ 新增文本标注模块（独立 `text_label_module.py`）
 - ⚡ uint8 优化：Normal 模式提速 2x
 - ⚡ BILINEAR 缩放：比 LANCZOS 快 1.6-1.9x
@@ -64,6 +73,7 @@ class WatermarkLayer:
     image: PIL.Image
     opacity: int (0-100)
     blend_mode: str
+    visible: bool  # 图层可见性（类似 Photoshop 眼睛图标）
 
 class MultiLayerWatermarkApp:
     """主应用类"""
@@ -74,7 +84,8 @@ class MultiLayerWatermarkApp:
 
     # 核心方法
     apply_blend_mode(base, layer, mode, opacity)  # 混合模式计算
-    apply_multilayer_watermark(image)             # 多图层叠加
+    apply_multilayer_watermark(image)             # 多图层叠加（跳过不可见图层）
+    toggle_layer_visibility()                      # 切换图层可见性
     load_config() / save_config()                 # 配置持久化
 ```
 
@@ -100,18 +111,23 @@ if blend_mode == 'normal':
 class TextLabelConfig:
     """配置类"""
     enabled: bool
-    label_type: str  # 'number' | 'filename'
-    position: str    # 'top_right' | ...
-    font_size: int
+    label_type: str   # 'number' | 'filename'
+    position: str     # 'top_right' | ...
+    font_size: float  # 百分比（相对图片高度，3.0 = 3%）
+    font_name: str    # 字体名称（从系统字体中选择）
     auto_contrast: bool
 
-    to_dict() / from_dict()  # 配置序列化
+    to_dict() / from_dict()  # 配置序列化（自动转换旧像素值）
 
 class TextLabelDrawer:
     """绘制器"""
-    get_font(size)                           # 智能字体选择（中英文）
+    get_font(size)                           # 智能字体选择（系统字体 + 中英文）
     get_contrasting_color(image, position)   # 自动对比色
-    draw_text_label(image, text, index)      # 绘制标注
+    draw_text_label(image, text, index)      # 绘制标注（动态计算像素大小）
+
+# 系统字体扫描
+scan_system_fonts()    # 扫描 Windows/macOS/Linux 字体目录
+get_system_fonts()     # 获取缓存的字体映射 {name: path}
 ```
 
 ---
@@ -122,13 +138,14 @@ class TextLabelDrawer:
 ```json
 {
   "layers": [
-    {"path": "水印路径", "opacity": 100, "blend_mode": "normal"}
+    {"path": "水印路径", "opacity": 100, "blend_mode": "normal", "visible": true}
   ],
   "text_label": {
     "enabled": false,
     "label_type": "number",
     "position": "top_right",
-    "font_size": 36,
+    "font_size": 3.0,
+    "font_name": "Arial",
     "auto_contrast": true,
     "background_enabled": true,
     "background_opacity": 128
@@ -284,12 +301,12 @@ def create_text_label_section(self, parent):
 
 ## ✅ 版本总结
 
-**v1.6** 是功能完整、性能优异的稳定版本：
+**v1.6.2** 是功能完整、性能优异的稳定版本：
 
 ### 核心价值
-- 🎨 多图层创意组合
+- 🎨 多图层创意组合 + 图层可见性切换
 - 🌈 专业混合模式
-- 🔤 智能文本标注
+- 🔤 智能文本标注 + 系统字体选择 + 百分比字体
 - ⚡ 高性能处理（1.95x 提速）
 - 📚 完善文档
 
@@ -298,6 +315,7 @@ def create_text_label_section(self, parent):
 - 清晰的类结构
 - 完整的中文注释
 - 性能监控和优化
+- 向后兼容设计
 
 ### 适合场景
 - 摄影师批量加水印
@@ -308,5 +326,5 @@ def create_text_label_section(self, parent):
 ---
 
 *最后更新: 2025-11-20*
-*版本: v1.6.0*
-*总行数: 300 行*
+*版本: v1.6.2*
+*总行数: 320 行*
