@@ -261,7 +261,7 @@ class MultiLayerWatermarkApp:
         stretch_cb.pack(pady=5)
 
     def create_text_label_section(self, parent):
-        """创建文本标注设置区域 - 方案1：简单版"""
+        """创建文本标注设置区域"""
         label_frame = tk.LabelFrame(parent, text="🔤 Text Label (右上角标注)", font=('Helvetica', 11, 'bold'),
                                    fg='#0095F6', bg='#FAFAFA', padx=10, pady=10)
         label_frame.pack(fill=tk.X, pady=(0, 15))
@@ -275,10 +275,10 @@ class MultiLayerWatermarkApp:
 
         # 标注类型
         type_row = tk.Frame(label_frame, bg='#FAFAFA')
-        type_row.pack(fill=tk.X)
+        type_row.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(type_row, text="Label Type:", font=('Helvetica', 9),
-                fg='#262626', bg='#FAFAFA').pack(side=tk.LEFT, padx=(0, 10))
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
 
         self.label_type_var = tk.StringVar(value=self.text_label_config.label_type)
         label_type_combo = ttk.Combobox(type_row, textvariable=self.label_type_var,
@@ -287,9 +287,42 @@ class MultiLayerWatermarkApp:
         label_type_combo.pack(side=tk.LEFT)
         label_type_combo.bind('<<ComboboxSelected>>', self.on_label_type_change)
 
+        # 字体选择（类似 Photoshop）
+        font_row = tk.Frame(label_frame, bg='#FAFAFA')
+        font_row.pack(fill=tk.X, pady=(0, 8))
+
+        tk.Label(font_row, text="Font:", font=('Helvetica', 9),
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+
+        # 获取系统字体并导入函数
+        from text_label_module import get_system_fonts
+        system_fonts = get_system_fonts()
+        font_names = sorted(system_fonts.keys())
+
+        self.label_font_var = tk.StringVar(value=self.text_label_config.font_name or '(Auto)')
+        font_combo = ttk.Combobox(font_row, textvariable=self.label_font_var,
+                                  values=['(Auto)'] + font_names,
+                                  state='readonly', width=20)
+        font_combo.pack(side=tk.LEFT)
+        font_combo.bind('<<ComboboxSelected>>', self.on_label_font_change)
+
+        # 字体大小
+        size_row = tk.Frame(label_frame, bg='#FAFAFA')
+        size_row.pack(fill=tk.X, pady=(0, 8))
+
+        tk.Label(size_row, text="Font Size:", font=('Helvetica', 9),
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+
+        self.label_font_size_var = tk.IntVar(value=self.text_label_config.font_size)
+        self.label_font_size_slider = tk.Scale(size_row, from_=12, to=120, orient=tk.HORIZONTAL,
+                                               variable=self.label_font_size_var,
+                                               showvalue=True, length=200,
+                                               command=self.on_label_font_size_change)
+        self.label_font_size_slider.pack(side=tk.LEFT)
+
         # 提示信息
         tip_label = tk.Label(label_frame,
-                           text="💡 Number: 1, 2, 3...  |  Filename: image_name",
+                           text="💡 Number: 1, 2, 3...  |  Filename: image_name  |  Font: Auto-detect",
                            font=('Helvetica', 8), fg='#666666', bg='#FAFAFA')
         tip_label.pack(anchor='w', pady=(5, 0))
 
@@ -919,6 +952,21 @@ class MultiLayerWatermarkApp:
     def on_label_type_change(self, event):
         """标注类型改变"""
         self.text_label_config.label_type = self.label_type_var.get()
+        self.save_config()
+
+    def on_label_font_change(self, event):
+        """标注字体改变"""
+        font_name = self.label_font_var.get()
+        if font_name == '(Auto)':
+            self.text_label_config.font_name = None
+        else:
+            self.text_label_config.font_name = font_name
+        self.save_config()
+        print(f"🎨 字体已更改: {self.text_label_config.font_name or 'Auto'}")
+
+    def on_label_font_size_change(self, value):
+        """标注字体大小改变"""
+        self.text_label_config.font_size = int(float(value))
         self.save_config()
 
     def auto_load_last_files(self):
