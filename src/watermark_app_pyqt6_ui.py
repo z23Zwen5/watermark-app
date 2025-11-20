@@ -411,6 +411,7 @@ class MultiLayerWatermarkApp(QMainWindow):
                 selection-color: #1C2333;
                 outline: none;
                 padding: 4px;
+                min-width: 250px;
             }
 
             QComboBox QAbstractItemView::item {
@@ -745,16 +746,19 @@ class MultiLayerWatermarkApp(QMainWindow):
             # Filter to only available fonts
             available_common = [f for f in common_fonts if f in system_fonts]
 
-            # Add fonts: Auto + common fonts + rest (up to 30 total)
+            # Add ALL fonts: Auto + common fonts first + rest (no limit)
             all_fonts = ['(Auto)'] + available_common
             remaining = [f for f in sorted(system_fonts.keys()) if f not in available_common]
-            all_fonts.extend(remaining[:max(0, 30 - len(all_fonts))])
+            all_fonts.extend(remaining)  # Add all remaining fonts
 
             self.label_font_combo.addItems(all_fonts)
             print(f"✦ Loaded {len(all_fonts)} fonts (including Auto)")
         except Exception as e:
             print(f"! Font loading error: {e}")
             self.label_font_combo.addItems(['(Auto)', 'Arial', 'Courier New', 'Times New Roman'])
+
+        # Set reasonable dropdown height (show 15 items at once with scrolling)
+        self.label_font_combo.setMaxVisibleItems(15)
 
         self.label_font_combo.setCurrentText(self.text_label_config.font_name or '(Auto)')
         self.label_font_combo.currentTextChanged.connect(self.on_label_font_change)
