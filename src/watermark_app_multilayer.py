@@ -8,41 +8,6 @@ import threading
 import time
 from text_label_module import TextLabelConfig, draw_text_label
 
-
-class GenshinGeoTheme:
-    """原神岩元素（Geo）主题配色"""
-    # Colors
-    PRIMARY = "#FFCC33"           # 金黄色
-    SECONDARY = "#2D240F"         # 深棕色
-    BACKGROUND = "#140F05"        # 深背景
-    TEXT_PRIMARY = "#FFF8E1"      # 浅米色
-    TEXT_SECONDARY = "#D4AF37"    # 金色
-    ACCENT = "#FFD700"            # 亮金色
-    BORDER = "#6B4E23"            # 棕色边框
-    SUCCESS = "#4CAF50"           # 成功绿色
-    ERROR = "#F44336"             # 错误红色
-    GRADIENT_START = "#FFDD66"    # 渐变开始
-    GRADIENT_END = "#FFB700"      # 渐变结束
-
-    # Darker variations for better contrast
-    BG_LIGHT = "#1E1810"          # 稍亮的背景
-    BG_MEDIUM = "#2A2015"         # 中等背景
-    BG_DARK = "#0F0A03"           # 更深背景
-
-    # Fonts
-    FONT_PRIMARY = "Segoe UI"
-    FONT_SECONDARY = "Georgia"
-    FONT_H1 = 24
-    FONT_H2 = 18
-    FONT_BODY = 12
-    FONT_SMALL = 10
-
-    # Border radius (for reference, tkinter has limited support)
-    RADIUS_SMALL = 4
-    RADIUS_MEDIUM = 8
-    RADIUS_LARGE = 12
-
-
 class WatermarkLayer:
     """水印图层类"""
     def __init__(self, image_path, opacity=100, blend_mode='normal', visible=True):
@@ -60,14 +25,11 @@ class WatermarkLayer:
 class MultiLayerWatermarkApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("⚔️ Multi-Layer Watermark App v1.5 - Geo Edition")
-        self.root.configure(bg=GenshinGeoTheme.BACKGROUND)
+        self.root.title("Multi-Layer Watermark App v1.5")
+        self.root.configure(bg='#FAFAFA')
 
         # Set minimum window size
         self.root.minsize(550, 650)
-
-        # Apply Genshin Geo theme styles
-        self.setup_theme_styles()
 
         # Initialize path memory
         self.config_file = "multilayer_watermark_config.json"
@@ -114,94 +76,31 @@ class MultiLayerWatermarkApp:
         # Auto-load last used files
         self.auto_load_last_files()
 
-    def setup_theme_styles(self):
-        """设置原神Geo主题样式"""
-        style = ttk.Style()
-
-        # 设置主题基础
-        style.theme_use('default')
-
-        # Configure TFrame
-        style.configure('TFrame',
-                       background=GenshinGeoTheme.BACKGROUND)
-
-        # Configure TLabel
-        style.configure('TLabel',
-                       background=GenshinGeoTheme.BG_LIGHT,
-                       foreground=GenshinGeoTheme.TEXT_PRIMARY,
-                       font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_BODY))
-
-        # Configure TButton - Geo style with golden glow
-        style.configure('TButton',
-                       background=GenshinGeoTheme.PRIMARY,
-                       foreground=GenshinGeoTheme.SECONDARY,
-                       borderwidth=2,
-                       relief='raised',
-                       font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_BODY, 'bold'))
-        style.map('TButton',
-                 background=[('active', GenshinGeoTheme.ACCENT),
-                           ('pressed', GenshinGeoTheme.GRADIENT_END)],
-                 foreground=[('active', GenshinGeoTheme.BACKGROUND)])
-
-        # Configure TCheckbutton
-        style.configure('TCheckbutton',
-                       background=GenshinGeoTheme.BG_LIGHT,
-                       foreground=GenshinGeoTheme.TEXT_PRIMARY,
-                       font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_BODY))
-        style.map('TCheckbutton',
-                 background=[('active', GenshinGeoTheme.BG_MEDIUM)])
-
-        # Configure TCombobox
-        style.configure('TCombobox',
-                       fieldbackground=GenshinGeoTheme.BG_MEDIUM,
-                       background=GenshinGeoTheme.PRIMARY,
-                       foreground=GenshinGeoTheme.TEXT_PRIMARY,
-                       arrowcolor=GenshinGeoTheme.ACCENT,
-                       borderwidth=2,
-                       relief='solid')
-        style.map('TCombobox',
-                 fieldbackground=[('readonly', GenshinGeoTheme.BG_MEDIUM)],
-                 selectbackground=[('readonly', GenshinGeoTheme.PRIMARY)],
-                 selectforeground=[('readonly', GenshinGeoTheme.BACKGROUND)])
-
-        # Configure Progressbar - Geo golden progress
-        style.configure('TProgressbar',
-                       background=GenshinGeoTheme.ACCENT,
-                       troughcolor=GenshinGeoTheme.BG_DARK,
-                       borderwidth=2,
-                       relief='sunken')
-
-        # Configure Listbox style (via option_add since Listbox is not ttk)
-        self.root.option_add('*TCombobox*Listbox.background', GenshinGeoTheme.BG_MEDIUM)
-        self.root.option_add('*TCombobox*Listbox.foreground', GenshinGeoTheme.TEXT_PRIMARY)
-        self.root.option_add('*TCombobox*Listbox.selectBackground', GenshinGeoTheme.PRIMARY)
-        self.root.option_add('*TCombobox*Listbox.selectForeground', GenshinGeoTheme.BACKGROUND)
-
     def create_ui(self):
         """创建用户界面"""
-        # Main container with Geo theme
-        main_container = tk.Frame(self.root, bg=GenshinGeoTheme.BACKGROUND)
+        # Main container
+        main_container = tk.Frame(self.root, bg='#FAFAFA')
         main_container.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
 
-        # Title section with Geo style
-        title_frame = tk.Frame(main_container, bg=GenshinGeoTheme.BACKGROUND)
+        # Title section
+        title_frame = tk.Frame(main_container, bg='#FAFAFA')
         title_frame.pack(fill=tk.X, pady=(0, 20))
 
         title_label = tk.Label(
             title_frame,
-            text="⚔️ Multi-Layer Watermark App",
-            font=(GenshinGeoTheme.FONT_SECONDARY, GenshinGeoTheme.FONT_H1, 'bold'),
-            fg=GenshinGeoTheme.ACCENT,
-            bg=GenshinGeoTheme.BACKGROUND
+            text="Multi-Layer Watermark App v1.5",
+            font=('Helvetica', 24, 'bold'),
+            fg='#262626',
+            bg='#FAFAFA'
         )
         title_label.pack()
 
         subtitle_label = tk.Label(
             title_frame,
-            text="✨ Geo Edition - Multi-Layer with Blend Modes ✨",
-            font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_BODY),
-            fg=GenshinGeoTheme.TEXT_SECONDARY,
-            bg=GenshinGeoTheme.BACKGROUND
+            text="🎨 Multi-Layer with Blend Modes",
+            font=('Helvetica', 12),
+            fg='#0095F6',
+            bg='#FAFAFA'
         )
         subtitle_label.pack()
 
@@ -228,111 +127,75 @@ class MultiLayerWatermarkApp:
 
     def create_upload_section(self, parent):
         """创建文件上传区域"""
-        upload_frame = tk.LabelFrame(
-            parent,
-            text="✦ File Upload ✦",
-            font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_H2 - 4, 'bold'),
-            fg=GenshinGeoTheme.ACCENT,
-            bg=GenshinGeoTheme.BG_LIGHT,
-            bd=2,
-            relief='ridge',
-            padx=10,
-            pady=10
-        )
+        upload_frame = tk.LabelFrame(parent, text="📁 File Upload", font=('Helvetica', 11, 'bold'),
+                                   fg='#0095F6', bg='#FAFAFA', padx=10, pady=10)
         upload_frame.pack(fill=tk.X, pady=(0, 15))
 
         button_style = {
-            'font': (GenshinGeoTheme.FONT_PRIMARY, 10, 'bold'),
-            'bg': GenshinGeoTheme.PRIMARY,
-            'fg': GenshinGeoTheme.SECONDARY,
-            'activebackground': GenshinGeoTheme.ACCENT,
-            'activeforeground': GenshinGeoTheme.BACKGROUND,
-            'relief': 'raised',
-            'bd': 2,
+            'font': ('Helvetica', 10),
+            'bg': '#0095F6',
+            'fg': 'white',
+            'activebackground': '#0081D6',
+            'activeforeground': 'white',
+            'relief': tk.FLAT,
             'padx': 20,
             'pady': 8,
             'cursor': 'hand2'
         }
 
-        btn_frame = tk.Frame(upload_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        btn_frame = tk.Frame(upload_frame, bg='#FAFAFA')
         btn_frame.pack(fill=tk.X)
 
-        self.upload_image_btn = tk.Button(btn_frame, text="📤 Upload Images",
+        self.upload_image_btn = tk.Button(btn_frame, text="Upload Images",
                                         command=self.upload_images, **button_style)
         self.upload_image_btn.pack(side=tk.LEFT, padx=(0, 10))
 
     def create_layer_section(self, parent):
         """创建图层管理区域"""
-        layer_frame = tk.LabelFrame(
-            parent,
-            text="✦ Watermark Layers ✦",
-            font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_H2 - 4, 'bold'),
-            fg=GenshinGeoTheme.ACCENT,
-            bg=GenshinGeoTheme.BG_LIGHT,
-            bd=2,
-            relief='ridge',
-            padx=10,
-            pady=10
-        )
+        layer_frame = tk.LabelFrame(parent, text="🎨 Watermark Layers", font=('Helvetica', 11, 'bold'),
+                                   fg='#0095F6', bg='#FAFAFA', padx=10, pady=10)
         layer_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
 
         # 提示信息
-        tip_label = tk.Label(
-            layer_frame,
-            text="💎 Larger layer numbers appear on top (覆盖下层)",
-            font=(GenshinGeoTheme.FONT_PRIMARY, 9),
-            fg=GenshinGeoTheme.TEXT_SECONDARY,
-            bg=GenshinGeoTheme.BG_LIGHT,
-            anchor='w'
-        )
+        tip_label = tk.Label(layer_frame, text="💡 Larger layer numbers appear on top (覆盖下层)",
+                           font=('Helvetica', 9), fg='#666666', bg='#FAFAFA', anchor='w')
         tip_label.pack(fill=tk.X, pady=(0, 5))
 
         # Layer list
-        list_frame = tk.Frame(layer_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        list_frame = tk.Frame(layer_frame, bg='#FAFAFA')
         list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-        scrollbar = tk.Scrollbar(list_frame, bg=GenshinGeoTheme.BG_MEDIUM)
+        scrollbar = tk.Scrollbar(list_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.layer_listbox = tk.Listbox(
-            list_frame,
-            yscrollcommand=scrollbar.set,
-            font=('Courier', 9),
-            height=6,
-            bg=GenshinGeoTheme.BG_MEDIUM,
-            fg=GenshinGeoTheme.TEXT_PRIMARY,
-            selectbackground=GenshinGeoTheme.PRIMARY,
-            selectforeground=GenshinGeoTheme.SECONDARY,
-            selectmode=tk.SINGLE,
-            bd=2,
-            relief='sunken'
-        )
+        self.layer_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set,
+                                       font=('Courier', 9), height=6, bg='#FFFFFF',
+                                       selectmode=tk.SINGLE)
         self.layer_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.layer_listbox.bind('<<ListboxSelect>>', self.on_layer_select)
         scrollbar.config(command=self.layer_listbox.yview)
 
         # Layer control buttons
-        btn_frame = tk.Frame(layer_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        btn_frame = tk.Frame(layer_frame, bg='#FAFAFA')
         btn_frame.pack(fill=tk.X, pady=(0, 10))
 
         button_style = {
-            'font': (GenshinGeoTheme.FONT_PRIMARY, 9, 'bold'),
-            'bg': GenshinGeoTheme.PRIMARY,
-            'fg': GenshinGeoTheme.SECONDARY,
-            'activebackground': GenshinGeoTheme.ACCENT,
-            'activeforeground': GenshinGeoTheme.BACKGROUND,
-            'relief': 'raised',
-            'bd': 2,
+            'font': ('Helvetica', 9),
+            'bg': '#0095F6',
+            'fg': 'white',
+            'activebackground': '#0081D6',
+            'activeforeground': 'white',
+            'relief': tk.FLAT,
             'padx': 10,
             'pady': 5,
             'cursor': 'hand2'
         }
 
-        tk.Button(btn_frame, text="✚ Add Layer", command=self.add_watermark_layer,
+        tk.Button(btn_frame, text="+ Add Layer", command=self.add_watermark_layer,
                  **button_style).pack(side=tk.LEFT, padx=(0, 5))
         tk.Button(btn_frame, text="👁️ Toggle", command=self.toggle_layer_visibility,
                  **button_style).pack(side=tk.LEFT, padx=(0, 5))
-        tk.Button(btn_frame, text="✕ Remove", command=self.remove_selected_layer,
+        tk.Button(btn_frame, text="× Remove", command=self.remove_selected_layer,
                  **button_style).pack(side=tk.LEFT, padx=(0, 5))
         tk.Button(btn_frame, text="↑ Up", command=lambda: self.move_layer(-1),
                  **button_style).pack(side=tk.LEFT, padx=(0, 5))
@@ -340,30 +203,16 @@ class MultiLayerWatermarkApp:
                  **button_style).pack(side=tk.LEFT)
 
         # Layer editor panel (inline)
-        editor_frame = tk.LabelFrame(
-            layer_frame,
-            text="⚙️ Layer Properties",
-            font=(GenshinGeoTheme.FONT_PRIMARY, 10, 'bold'),
-            fg=GenshinGeoTheme.TEXT_SECONDARY,
-            bg=GenshinGeoTheme.BG_MEDIUM,
-            padx=10,
-            pady=8
-        )
+        editor_frame = tk.LabelFrame(layer_frame, text="Layer Properties", font=('Helvetica', 10, 'bold'),
+                                    fg='#262626', bg='#FAFAFA', padx=10, pady=8)
         editor_frame.pack(fill=tk.X)
 
         # Blend mode
-        blend_row = tk.Frame(editor_frame, bg=GenshinGeoTheme.BG_MEDIUM)
+        blend_row = tk.Frame(editor_frame, bg='#FAFAFA')
         blend_row.pack(fill=tk.X, pady=(0, 8))
 
-        tk.Label(
-            blend_row,
-            text="Blend Mode:",
-            font=(GenshinGeoTheme.FONT_PRIMARY, 9),
-            fg=GenshinGeoTheme.TEXT_PRIMARY,
-            bg=GenshinGeoTheme.BG_MEDIUM,
-            width=12,
-            anchor='w'
-        ).pack(side=tk.LEFT)
+        tk.Label(blend_row, text="Blend Mode:", font=('Helvetica', 9),
+                fg='#262626', bg='#FAFAFA', width=12, anchor='w').pack(side=tk.LEFT)
 
         self.blend_mode_var = tk.StringVar(value='normal')
         self.blend_mode_combo = ttk.Combobox(blend_row, textvariable=self.blend_mode_var,
@@ -373,32 +222,15 @@ class MultiLayerWatermarkApp:
         self.blend_mode_combo.bind('<<ComboboxSelected>>', self.on_blend_mode_change)
 
         # Opacity
-        opacity_row = tk.Frame(editor_frame, bg=GenshinGeoTheme.BG_MEDIUM)
+        opacity_row = tk.Frame(editor_frame, bg='#FAFAFA')
         opacity_row.pack(fill=tk.X, pady=(0, 5))
 
-        tk.Label(
-            opacity_row,
-            text="Opacity (%):",
-            font=(GenshinGeoTheme.FONT_PRIMARY, 9),
-            fg=GenshinGeoTheme.TEXT_PRIMARY,
-            bg=GenshinGeoTheme.BG_MEDIUM,
-            width=12,
-            anchor='w'
-        ).pack(side=tk.LEFT)
+        tk.Label(opacity_row, text="Opacity (%):", font=('Helvetica', 9),
+                fg='#262626', bg='#FAFAFA', width=12, anchor='w').pack(side=tk.LEFT)
 
         # Opacity entry with validation
         vcmd = (self.root.register(self.validate_opacity), '%P')
-        self.opacity_entry = tk.Entry(
-            opacity_row,
-            width=8,
-            validate='key',
-            validatecommand=vcmd,
-            bg=GenshinGeoTheme.BG_DARK,
-            fg=GenshinGeoTheme.TEXT_PRIMARY,
-            insertbackground=GenshinGeoTheme.ACCENT,
-            bd=2,
-            relief='sunken'
-        )
+        self.opacity_entry = tk.Entry(opacity_row, width=8, validate='key', validatecommand=vcmd)
         self.opacity_entry.insert(0, '100')
         self.opacity_entry.pack(side=tk.LEFT, padx=(0, 10))
         self.opacity_entry.bind('<KeyRelease>', self.on_opacity_entry_change)
@@ -406,21 +238,9 @@ class MultiLayerWatermarkApp:
 
         # Opacity slider
         self.opacity_var = tk.IntVar(value=100)
-        self.opacity_slider = tk.Scale(
-            opacity_row,
-            from_=0,
-            to=100,
-            orient=tk.HORIZONTAL,
-            variable=self.opacity_var,
-            showvalue=False,
-            length=150,
-            command=self.on_opacity_slider_change,
-            bg=GenshinGeoTheme.BG_MEDIUM,
-            fg=GenshinGeoTheme.TEXT_PRIMARY,
-            troughcolor=GenshinGeoTheme.BG_DARK,
-            activebackground=GenshinGeoTheme.ACCENT,
-            highlightbackground=GenshinGeoTheme.BORDER
-        )
+        self.opacity_slider = tk.Scale(opacity_row, from_=0, to=100, orient=tk.HORIZONTAL,
+                                      variable=self.opacity_var, showvalue=False,
+                                      length=150, command=self.on_opacity_slider_change)
         self.opacity_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # 默认禁用编辑器
@@ -430,17 +250,8 @@ class MultiLayerWatermarkApp:
 
     def create_settings_section(self, parent):
         """创建基础设置区域"""
-        settings_frame = tk.LabelFrame(
-            parent,
-            text="✦ Settings ✦",
-            font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_H2 - 4, 'bold'),
-            fg=GenshinGeoTheme.ACCENT,
-            bg=GenshinGeoTheme.BG_LIGHT,
-            bd=2,
-            relief='ridge',
-            padx=10,
-            pady=10
-        )
+        settings_frame = tk.LabelFrame(parent, text="⚙️ Settings", font=('Helvetica', 11, 'bold'),
+                                     fg='#0095F6', bg='#FAFAFA', padx=10, pady=10)
         settings_frame.pack(fill=tk.X, pady=(0, 15))
 
         # Stretch option
@@ -451,17 +262,8 @@ class MultiLayerWatermarkApp:
 
     def create_text_label_section(self, parent):
         """创建文本标注设置区域"""
-        label_frame = tk.LabelFrame(
-            parent,
-            text="✦ Text Label (文字标注) ✦",
-            font=(GenshinGeoTheme.FONT_PRIMARY, GenshinGeoTheme.FONT_H2 - 4, 'bold'),
-            fg=GenshinGeoTheme.ACCENT,
-            bg=GenshinGeoTheme.BG_LIGHT,
-            bd=2,
-            relief='ridge',
-            padx=10,
-            pady=10
-        )
+        label_frame = tk.LabelFrame(parent, text="🔤 Text Label (文字标注)", font=('Helvetica', 11, 'bold'),
+                                   fg='#0095F6', bg='#FAFAFA', padx=10, pady=10)
         label_frame.pack(fill=tk.X, pady=(0, 15))
 
         # 启用标注
@@ -472,11 +274,11 @@ class MultiLayerWatermarkApp:
         enabled_cb.pack(anchor='w', pady=(0, 8))
 
         # 标注类型
-        type_row = tk.Frame(label_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        type_row = tk.Frame(label_frame, bg='#FAFAFA')
         type_row.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(type_row, text="Label Type:", font=('Helvetica', 9),
-                fg=GenshinGeoTheme.TEXT_PRIMARY, bg=GenshinGeoTheme.BG_LIGHT, width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
 
         self.label_type_var = tk.StringVar(value=self.text_label_config.label_type)
         label_type_combo = ttk.Combobox(type_row, textvariable=self.label_type_var,
@@ -486,11 +288,11 @@ class MultiLayerWatermarkApp:
         label_type_combo.bind('<<ComboboxSelected>>', self.on_label_type_change)
 
         # 位置选择
-        position_row = tk.Frame(label_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        position_row = tk.Frame(label_frame, bg='#FAFAFA')
         position_row.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(position_row, text="Position:", font=('Helvetica', 9),
-                fg=GenshinGeoTheme.TEXT_PRIMARY, bg=GenshinGeoTheme.BG_LIGHT, width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
 
         self.label_position_var = tk.StringVar(value=self.text_label_config.position)
         position_combo = ttk.Combobox(position_row, textvariable=self.label_position_var,
@@ -500,11 +302,11 @@ class MultiLayerWatermarkApp:
         position_combo.bind('<<ComboboxSelected>>', self.on_label_position_change)
 
         # 文字方向选择
-        orientation_row = tk.Frame(label_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        orientation_row = tk.Frame(label_frame, bg='#FAFAFA')
         orientation_row.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(orientation_row, text="Orientation:", font=('Helvetica', 9),
-                fg=GenshinGeoTheme.TEXT_PRIMARY, bg=GenshinGeoTheme.BG_LIGHT, width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
 
         self.label_orientation_var = tk.StringVar(value=self.text_label_config.orientation)
         orientation_combo = ttk.Combobox(orientation_row, textvariable=self.label_orientation_var,
@@ -514,11 +316,11 @@ class MultiLayerWatermarkApp:
         orientation_combo.bind('<<ComboboxSelected>>', self.on_label_orientation_change)
 
         # 字体选择（类似 Photoshop）
-        font_row = tk.Frame(label_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        font_row = tk.Frame(label_frame, bg='#FAFAFA')
         font_row.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(font_row, text="Font:", font=('Helvetica', 9),
-                fg=GenshinGeoTheme.TEXT_PRIMARY, bg=GenshinGeoTheme.BG_LIGHT, width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
 
         # 获取系统字体并导入函数
         from text_label_module import get_system_fonts
@@ -533,11 +335,11 @@ class MultiLayerWatermarkApp:
         font_combo.bind('<<ComboboxSelected>>', self.on_label_font_change)
 
         # 字体大小（百分比，相对于图片高度）
-        size_row = tk.Frame(label_frame, bg=GenshinGeoTheme.BG_LIGHT)
+        size_row = tk.Frame(label_frame, bg='#FAFAFA')
         size_row.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(size_row, text="Font Size:", font=('Helvetica', 9),
-                fg=GenshinGeoTheme.TEXT_PRIMARY, bg=GenshinGeoTheme.BG_LIGHT, width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
 
         self.label_font_size_var = tk.DoubleVar(value=self.text_label_config.font_size)
         self.label_font_size_slider = tk.Scale(size_row, from_=0.5, to=10.0, resolution=0.1,
@@ -548,17 +350,17 @@ class MultiLayerWatermarkApp:
         self.label_font_size_slider.pack(side=tk.LEFT)
 
         tk.Label(size_row, text="% (of image height)", font=('Helvetica', 9),
-                fg=GenshinGeoTheme.TEXT_SECONDARY, bg=GenshinGeoTheme.BG_LIGHT).pack(side=tk.LEFT, padx=(5, 0))
+                fg='#666666', bg='#FAFAFA').pack(side=tk.LEFT, padx=(5, 0))
 
         # 提示信息
         tip_label = tk.Label(label_frame,
                            text="💡 Number: 1, 2, 3...  |  Filename: image_name  |  Font: Auto-detect",
-                           font=('Helvetica', 8), fg=GenshinGeoTheme.TEXT_SECONDARY, bg=GenshinGeoTheme.BG_LIGHT)
+                           font=('Helvetica', 8), fg='#666666', bg='#FAFAFA')
         tip_label.pack(anchor='w', pady=(5, 0))
 
     def create_progress_section(self, parent):
         """创建进度显示区域"""
-        progress_frame = tk.Frame(parent, bg=GenshinGeoTheme.BG_LIGHT)
+        progress_frame = tk.Frame(parent, bg='#FAFAFA')
         progress_frame.pack(fill=tk.X, pady=(0, 15))
 
         self.progress_var = tk.DoubleVar()
@@ -567,66 +369,56 @@ class MultiLayerWatermarkApp:
         self.progress_bar.pack(fill=tk.X, pady=(0, 5))
 
         self.status_label = tk.Label(progress_frame, text="Ready to process",
-                                   font=('Helvetica', 9), fg=GenshinGeoTheme.TEXT_SECONDARY, bg=GenshinGeoTheme.BG_LIGHT)
+                                   font=('Helvetica', 9), fg='#666666', bg='#FAFAFA')
         self.status_label.pack()
 
     def create_save_section(self, parent):
         """创建保存目录区域"""
-        save_frame = tk.Frame(parent, bg=GenshinGeoTheme.BG_LIGHT)
+        save_frame = tk.Frame(parent, bg='#FAFAFA')
         save_frame.pack(fill=tk.X, pady=(0, 15))
 
         button_style = {
-            'font': (GenshinGeoTheme.FONT_PRIMARY, 10, 'bold'),
-            'bg': GenshinGeoTheme.PRIMARY,
-            'fg': GenshinGeoTheme.SECONDARY,
-            'activebackground': GenshinGeoTheme.ACCENT,
-            'activeforeground': GenshinGeoTheme.BACKGROUND,
-            'relief': 'raised',
-            'bd': 2,
+            'font': ('Helvetica', 10),
+            'bg': '#0095F6',
+            'fg': 'white',
+            'activebackground': '#0081D6',
+            'activeforeground': 'white',
+            'relief': tk.FLAT,
             'padx': 20,
             'pady': 8,
             'cursor': 'hand2'
         }
 
-        self.save_dir_btn = tk.Button(save_frame, text="📁 Select Save Directory",
+        self.save_dir_btn = tk.Button(save_frame, text="Select Save Directory",
                                     command=self.select_save_directory, **button_style)
         self.save_dir_btn.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.save_dir_label = tk.Label(
-            save_frame,
-            text="No directory selected",
-            wraplength=300,
-            justify=tk.LEFT,
-            bg=GenshinGeoTheme.BG_MEDIUM,
-            fg=GenshinGeoTheme.TEXT_PRIMARY,
-            relief='sunken',
-            bd=2,
-            padx=10,
-            pady=5
-        )
+        self.save_dir_label = tk.Label(save_frame, text="No directory selected",
+                                     wraplength=300, justify=tk.LEFT, bg='#FFFFFF',
+                                     fg='#262626', relief=tk.SOLID, borderwidth=1,
+                                     padx=10, pady=5)
         self.save_dir_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         self.update_save_dir_label()
 
     def create_action_section(self, parent):
         """创建操作按钮区域"""
-        action_frame = tk.Frame(parent, bg=GenshinGeoTheme.BG_LIGHT)
+        action_frame = tk.Frame(parent, bg='#FAFAFA')
         action_frame.pack(fill=tk.X, pady=(15, 0))
 
         button_style = {
-            'font': (GenshinGeoTheme.FONT_SECONDARY, 14, 'bold'),
-            'bg': GenshinGeoTheme.ACCENT,
-            'fg': GenshinGeoTheme.SECONDARY,
-            'activebackground': GenshinGeoTheme.GRADIENT_START,
-            'activeforeground': GenshinGeoTheme.BACKGROUND,
-            'relief': 'raised',
-            'bd': 3,
+            'font': ('Helvetica', 14, 'bold'),
+            'bg': '#0095F6',
+            'fg': 'white',
+            'activebackground': '#0081D6',
+            'activeforeground': 'white',
+            'relief': tk.FLAT,
             'padx': 30,
             'pady': 15,
             'cursor': 'hand2'
         }
 
-        self.apply_btn = tk.Button(action_frame, text="⚔️ Apply Geo Watermark Enchantment ⚔️",
+        self.apply_btn = tk.Button(action_frame, text="🚀 Apply Multi-Layer Watermark",
                                  command=self.apply_watermark_threaded, **button_style)
         self.apply_btn.pack(fill=tk.X)
 
