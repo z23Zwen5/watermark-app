@@ -115,37 +115,48 @@ class GenshinStyleSheet:
         
        /* ComboBox Optimization */
         QComboBox {{
-            padding-right: 20px;
+            /* 修改 1: 增加右侧内边距，必须大于 drop-down 的宽度 */
+            padding-right: 40px; 
         }}
+        
+        /* 下拉按钮区域（容器） */
         QComboBox::drop-down {{
             subcontrol-origin: padding;
             subcontrol-position: top right;
             width: 30px;
+            
             border-left-width: 0px;
             border-top-right-radius: 8px;
             border-bottom-right-radius: 8px;
             background: transparent;
         }}
         
-        /* 使用 SVG 图片替换原来的 CSS 三角形 */
+        /* 下拉箭头图标 - 基础定义 */
         QComboBox::down-arrow {{
-            image: url("{ARROW_SVG}");  /* 正常状态图标 - 使用绝对路径 */
-            width: 16px;              /* 必须给图标设置尺寸 */
+            /* 注意：这里的 {{ARROW_SVG}} 是变量，所以用单括号 */
+            image: url("{ARROW_SVG}");  
+            width: 16px;
             height: 16px;
-            border: none;             /* 清除之前的边框绘制代码 */
-            margin-right: 10px;
+            
+            /* 修改 2: 将箭头居中定位在 drop-down 容器内部 */
+            subcontrol-origin: padding;
+            subcontrol-position: center; 
         }}
 
-        /* 悬停时切换为高亮图标 */
-        QComboBox::drop-down:hover QComboBox::down-arrow {{
-            image: url("{ARROW_HOVER_SVG}"); /* 悬停状态图标 - 使用绝对路径 */
+        /* 悬停时状态 */
+        /* 修改 3: 悬停时切换图片 */
+        QComboBox::down-arrow:hover {{
+            image: url("{ARROW_HOVER_SVG}"); 
+        }}
+        QComboBox::down-arrow:on {{
+            image: url("{ARROW_HOVER_SVG}");
         }}
         
-        /* ComboBox Popup Panel (保持不变) */
+        /* 下拉列表弹窗样式 (保持不变) */
         QComboBox QAbstractItemView {{
             border: 1px solid {C_ACCENT_GOLD_DARK};
             background-color: #FFFBF0;
-            color: {C_TEXT_PRIMARY}; /* Dark Text */
+            color: {C_TEXT_PRIMARY};
             selection-background-color: {C_ACCENT_GOLD};
             selection-color: #3E3429;
             outline: none;
@@ -196,6 +207,11 @@ class GenshinStyleSheet:
         }}
 
         /* Sliders */
+        QSlider {{
+            min-height: 22px; /* 新增：强制控件高度大于手柄高度(18px)，防止被切断 */
+            background: transparent;
+        }}
+
         QSlider::groove:horizontal {{
             border: 1px solid #BBB;
             height: 6px;
@@ -210,8 +226,12 @@ class GenshinStyleSheet:
             background: white;
             border: 2px solid {C_ACCENT_GOLD_DARK};
             width: 18px; height: 18px;
-            margin: -7px 0;
+            margin: -7px 0; /* 垂直居中修正：(18px手柄 - 6px轨道)/2 = 6px，取 -7px 确保覆盖 */
             border-radius: 9px;
+        }}
+        QSlider::handle:horizontal:hover {{
+            background: #FFFBF0;
+            border-color: {C_ACCENT_GOLD};
         }}
         
         /* Progress Bar */
@@ -775,11 +795,7 @@ class MultiLayerWatermarkApp(QMainWindow):
         self.btn_apply.setStyleSheet(GenshinStyleSheet.BTN_PRIMARY)
         self.btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_apply.setMinimumHeight(55)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(166, 141, 94, 120))
-        shadow.setOffset(0, 5)
-        self.btn_apply.setGraphicsEffect(shadow)
+
         self.btn_apply.clicked.connect(self.apply_watermark_threaded)
         
         vbox.addWidget(self.btn_apply)
