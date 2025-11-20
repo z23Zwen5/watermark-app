@@ -109,7 +109,7 @@ class MultiLayerWatermarkApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("Multi-Layer Watermark App v1.6.2")
         self.setObjectName("MainWindow")
-        self.setMinimumSize(1000, 700)
+        self.setMinimumSize(1000, 600)
 
         # Frameless window
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
@@ -141,8 +141,8 @@ class MultiLayerWatermarkApp(QMainWindow):
 
         self.scroll_content = QWidget()
         self.content_layout = QVBoxLayout(self.scroll_content)
-        self.content_layout.setContentsMargins(20, 20, 20, 20)
-        self.content_layout.setSpacing(20)
+        self.content_layout.setContentsMargins(15, 10, 15, 10)
+        self.content_layout.setSpacing(10)
 
         self.scroll_area.setWidget(self.scroll_content)
 
@@ -274,16 +274,16 @@ class MultiLayerWatermarkApp(QMainWindow):
             /* Group Boxes */
             QGroupBox {
                 font-family: 'Segoe UI', 'Microsoft YaHei';
-                font-size: 15px;
+                font-size: 14px;
                 font-weight: bold;
                 color: #D3BC8E;
                 border: 2px solid #BFA065;
-                border-radius: 12px;
-                margin-top: 25px;
-                padding-top: 25px;
-                padding-left: 15px;
-                padding-right: 15px;
-                padding-bottom: 15px;
+                border-radius: 10px;
+                margin-top: 18px;
+                padding-top: 18px;
+                padding-left: 10px;
+                padding-right: 10px;
+                padding-bottom: 10px;
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #F8F9FA, stop:1 #ECE5D8);
             }
@@ -291,26 +291,26 @@ class MultiLayerWatermarkApp(QMainWindow):
             QGroupBox::title {
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
-                padding: 5px 15px;
+                padding: 3px 12px;
                 background-color: #ECE5D8;
                 border: 1px solid #BFA065;
-                border-radius: 8px;
-                left: 15px;
-                top: 8px;
+                border-radius: 6px;
+                left: 12px;
+                top: 6px;
             }
 
             /* Buttons */
             QPushButton {
                 font-family: 'Segoe UI', 'Microsoft YaHei';
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 500;
                 color: #1C2333;
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #D3BC8E, stop:1 #BFA065);
                 border: 1px solid #BFA065;
                 border-radius: 8px;
-                padding: 8px 16px;
-                min-height: 32px;
+                padding: 6px 12px;
+                min-height: 28px;
             }
 
             QPushButton:hover {
@@ -332,10 +332,10 @@ class MultiLayerWatermarkApp(QMainWindow):
 
             /* Primary Action Button */
             QPushButton#applyButton {
-                font-size: 15px;
+                font-size: 14px;
                 font-weight: bold;
-                padding: 12px 30px;
-                min-height: 45px;
+                padding: 10px 24px;
+                min-height: 38px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #D3BC8E, stop:0.5 #BFA065, stop:1 #D3BC8E);
                 border: 2px solid #BFA065;
@@ -484,50 +484,38 @@ class MultiLayerWatermarkApp(QMainWindow):
             /* Progress Bar */
             QProgressBar {
                 border: 2px solid #BFA065;
-                border-radius: 10px;
+                border-radius: 8px;
                 text-align: center;
                 color: #1C2333;
                 background-color: #ECE5D8;
-                height: 25px;
+                height: 20px;
                 font-weight: bold;
+                font-size: 11px;
             }
 
             QProgressBar::chunk {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #D3BC8E, stop:0.5 #BFA065, stop:1 #D3BC8E);
-                border-radius: 8px;
+                border-radius: 6px;
             }
         """)
 
     def create_ui(self):
         """创建用户界面"""
-        # Title section
-        title_label = QLabel("Multi-Layer Watermark Tool")
-        title_font = QFont("Segoe UI", 24, QFont.Weight.Bold)
-        title_label.setFont(title_font)
-        title_label.setStyleSheet("color: #BFA065; padding: 10px;")
-        self.content_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        subtitle_label = QLabel("✦ Multi-Layer with Blend Modes")
-        subtitle_font = QFont("Segoe UI", 12)
-        subtitle_label.setFont(subtitle_font)
-        subtitle_label.setStyleSheet("color: #D3BC8E; padding-bottom: 10px;")
-        self.content_layout.addWidget(subtitle_label, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Create two-column layout
+        # Create two-column layout (removed redundant title section)
         main_columns = QHBoxLayout()
-        main_columns.setSpacing(20)
+        main_columns.setSpacing(15)
 
         # Left column - Main functionality
         left_column = QVBoxLayout()
-        left_column.setSpacing(15)
+        left_column.setSpacing(8)
         self.create_upload_section(left_column)
         self.create_layer_section(left_column)
         left_column.addStretch(1)
 
         # Right column - Settings and controls
         right_column = QVBoxLayout()
-        right_column.setSpacing(15)
+        right_column.setSpacing(8)
         self.create_settings_section(right_column)
         self.create_text_label_section(right_column)
         self.create_progress_section(right_column)
@@ -545,34 +533,23 @@ class MultiLayerWatermarkApp(QMainWindow):
         """创建文件上传区域"""
         upload_group = QGroupBox("✦ File Upload")
         layout = QVBoxLayout(upload_group)
-        layout.setSpacing(10)
-
-        btn_frame = QFrame()
-        btn_layout = QHBoxLayout(btn_frame)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-        btn_layout.setSpacing(10)
+        layout.setSpacing(5)
 
         self.upload_image_btn = QPushButton("Upload Images")
         self.upload_image_btn.setIcon(qta.icon('fa5s.images', color='#1C2333'))
         self.upload_image_btn.clicked.connect(self.upload_images)
-        btn_layout.addWidget(self.upload_image_btn)
-        btn_layout.addStretch(1)
+        layout.addWidget(self.upload_image_btn)
 
-        layout.addWidget(btn_frame)
         parent_layout.addWidget(upload_group)
 
     def create_layer_section(self, parent_layout):
         """创建图层管理区域"""
         layer_group = QGroupBox("✦ Watermark Layers")
         layout = QVBoxLayout(layer_group)
-        layout.setSpacing(10)
-
-        tip_label = QLabel("✦ Larger layer numbers appear on top (覆盖下层)")
-        tip_label.setStyleSheet("color: #666666; font-size: 11px;")
-        layout.addWidget(tip_label)
+        layout.setSpacing(8)
 
         self.layer_listbox = QListWidget()
-        self.layer_listbox.setMinimumHeight(150)
+        self.layer_listbox.setMinimumHeight(100)
         self.layer_listbox.itemSelectionChanged.connect(self.on_layer_select)
         layout.addWidget(self.layer_listbox)
 
@@ -614,10 +591,10 @@ class MultiLayerWatermarkApp(QMainWindow):
             QGroupBox {
                 border: 1px dashed #BFA065;
                 background-color: #F8F9FA;
-                padding-top: 25px;
-                margin-top: 15px;
+                padding-top: 18px;
+                margin-top: 12px;
                 border-radius: 8px;
-                font-size: 13px;
+                font-size: 12px;
             }
             QGroupBox::title {
                 background-color: #F8F9FA;
@@ -625,7 +602,7 @@ class MultiLayerWatermarkApp(QMainWindow):
             }
         """)
         editor_layout = QVBoxLayout(editor_group)
-        editor_layout.setSpacing(10)
+        editor_layout.setSpacing(6)
 
         # Blend mode
         blend_row = QHBoxLayout()
@@ -666,9 +643,9 @@ class MultiLayerWatermarkApp(QMainWindow):
         """创建基础设置区域"""
         settings_group = QGroupBox("✦ Settings")
         layout = QVBoxLayout(settings_group)
-        layout.setSpacing(10)
+        layout.setSpacing(5)
 
-        self.stretch_checkbox = QCheckBox("Stretch watermark to fit image")
+        self.stretch_checkbox = QCheckBox("Stretch watermark")
         self.stretch_checkbox.setChecked(self.stretch_var)
         self.stretch_checkbox.stateChanged.connect(self.on_stretch_change)
         layout.addWidget(self.stretch_checkbox)
@@ -676,80 +653,93 @@ class MultiLayerWatermarkApp(QMainWindow):
         parent_layout.addWidget(settings_group)
 
     def create_text_label_section(self, parent_layout):
-        """创建文本标注设置区域"""
-        label_group = QGroupBox("✦ Text Label (文字标注)")
+        """创建文本标注设置区域 - 紧凑版"""
+        label_group = QGroupBox("✦ Text Label")
         layout = QVBoxLayout(label_group)
-        layout.setSpacing(10)
+        layout.setSpacing(8)
 
-        # Enable label
-        self.label_enabled_checkbox = QCheckBox("Enable text label (add number or filename)")
+        # Enable checkbox
+        self.label_enabled_checkbox = QCheckBox("Enable text label")
         self.label_enabled_checkbox.setChecked(self.text_label_config.enabled)
         self.label_enabled_checkbox.stateChanged.connect(self.on_label_enabled_change)
         layout.addWidget(self.label_enabled_checkbox)
 
-        # Label Type
-        type_row = QHBoxLayout()
-        type_row.addWidget(QLabel("Label Type:"))
+        # Collapsible details frame
+        self.label_details_frame = QFrame()
+        self.label_details_frame.setVisible(self.text_label_config.enabled)
+        details_layout = QVBoxLayout(self.label_details_frame)
+        details_layout.setContentsMargins(0, 5, 0, 0)
+        details_layout.setSpacing(6)
+
+        # Type & Position in one row
+        row1 = QHBoxLayout()
+        row1.setSpacing(8)
+
+        row1.addWidget(QLabel("Type:"))
         self.label_type_combo = QComboBox()
         self.label_type_combo.addItems(['number', 'filename'])
         self.label_type_combo.setCurrentText(self.text_label_config.label_type)
         self.label_type_combo.currentTextChanged.connect(self.on_label_type_change)
-        type_row.addWidget(self.label_type_combo)
-        type_row.addStretch(1)
-        layout.addLayout(type_row)
+        row1.addWidget(self.label_type_combo, 1)
+
+        details_layout.addLayout(row1)
 
         # Position
-        position_row = QHBoxLayout()
-        position_row.addWidget(QLabel("Position:"))
+        row2 = QHBoxLayout()
+        row2.setSpacing(8)
+        row2.addWidget(QLabel("Position:"))
         self.label_position_combo = QComboBox()
         self.label_position_combo.addItems(['top_left', 'top_right', 'bottom_left', 'bottom_right', 'center'])
         self.label_position_combo.setCurrentText(self.text_label_config.position)
         self.label_position_combo.currentTextChanged.connect(self.on_label_position_change)
-        position_row.addWidget(self.label_position_combo)
-        position_row.addStretch(1)
-        layout.addLayout(position_row)
+        row2.addWidget(self.label_position_combo, 1)
+        details_layout.addLayout(row2)
 
-        # Orientation
-        orientation_row = QHBoxLayout()
-        orientation_row.addWidget(QLabel("Orientation:"))
+        # Orientation & Font in one row
+        row3 = QHBoxLayout()
+        row3.setSpacing(8)
+        row3.addWidget(QLabel("Orient:"))
         self.label_orientation_combo = QComboBox()
         self.label_orientation_combo.addItems(['horizontal', 'vertical'])
         self.label_orientation_combo.setCurrentText(self.text_label_config.orientation)
         self.label_orientation_combo.currentTextChanged.connect(self.on_label_orientation_change)
-        orientation_row.addWidget(self.label_orientation_combo)
-        orientation_row.addStretch(1)
-        layout.addLayout(orientation_row)
+        row3.addWidget(self.label_orientation_combo, 1)
+        details_layout.addLayout(row3)
 
-        # Font
-        font_row = QHBoxLayout()
-        font_row.addWidget(QLabel("Font:"))
+        # Font selection
+        row4 = QHBoxLayout()
+        row4.setSpacing(8)
+        row4.addWidget(QLabel("Font:"))
         self.label_font_combo = QComboBox()
         system_fonts = get_system_fonts()
-        self.label_font_combo.addItems(['(Auto)'] + sorted(system_fonts.keys()))
+        self.label_font_combo.addItems(['(Auto)'] + sorted(system_fonts.keys())[:10])  # Limit to first 10 fonts
         self.label_font_combo.setCurrentText(self.text_label_config.font_name or '(Auto)')
         self.label_font_combo.currentTextChanged.connect(self.on_label_font_change)
-        font_row.addWidget(self.label_font_combo)
-        font_row.addStretch(1)
-        layout.addLayout(font_row)
+        row4.addWidget(self.label_font_combo, 1)
+        details_layout.addLayout(row4)
 
-        # Font Size
+        # Font Size - compact
         size_row = QHBoxLayout()
-        size_row.addWidget(QLabel("Font Size:"))
+        size_row.setSpacing(5)
+        size_row.addWidget(QLabel("Size:"))
         self.label_font_size_slider = QSlider(Qt.Orientation.Horizontal)
         self.label_font_size_slider.setRange(5, 100)
         self.label_font_size_slider.setValue(int(self.text_label_config.font_size * 10))
         self.label_font_size_slider.valueChanged.connect(self.on_label_font_size_change)
-        size_row.addWidget(self.label_font_size_slider)
+        size_row.addWidget(self.label_font_size_slider, 1)
 
         self.label_font_size_display = QLabel(f"{self.text_label_config.font_size:.1f}%")
-        self.label_font_size_display.setStyleSheet("color: #666666; font-size: 11px;")
+        self.label_font_size_display.setStyleSheet("color: #666666; font-size: 10px;")
+        self.label_font_size_display.setFixedWidth(40)
         size_row.addWidget(self.label_font_size_display)
+        details_layout.addLayout(size_row)
 
-        layout.addLayout(size_row)
+        layout.addWidget(self.label_details_frame)
 
-        tip_label = QLabel("✦ Number: 1, 2, 3... | Filename: image_name")
-        tip_label.setStyleSheet("color: #666666; font-size: 10px;")
-        layout.addWidget(tip_label)
+        # Connect checkbox to show/hide details
+        self.label_enabled_checkbox.stateChanged.connect(
+            lambda state: self.label_details_frame.setVisible(bool(state == Qt.CheckState.Checked.value))
+        )
 
         parent_layout.addWidget(label_group)
 
@@ -758,41 +748,44 @@ class MultiLayerWatermarkApp(QMainWindow):
         progress_frame = QFrame()
         progress_layout = QVBoxLayout(progress_frame)
         progress_layout.setContentsMargins(0, 0, 0, 0)
-        progress_layout.setSpacing(5)
+        progress_layout.setSpacing(3)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
+        self.progress_bar.setFixedHeight(20)
         progress_layout.addWidget(self.progress_bar)
 
-        self.status_label = QLabel("Ready to process")
-        self.status_label.setStyleSheet("color: #666666; font-size: 12px;")
+        self.status_label = QLabel("Ready")
+        self.status_label.setStyleSheet("color: #666666; font-size: 11px;")
         progress_layout.addWidget(self.status_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         parent_layout.addWidget(progress_frame)
 
     def create_save_section(self, parent_layout):
-        """创建保存目录区域"""
+        """创建保存目录区域 - 紧凑版"""
         save_frame = QFrame()
-        save_layout = QHBoxLayout(save_frame)
+        save_layout = QVBoxLayout(save_frame)
         save_layout.setContentsMargins(0, 0, 0, 0)
-        save_layout.setSpacing(10)
+        save_layout.setSpacing(5)
 
-        self.save_dir_btn = QPushButton("Select Save Directory")
+        self.save_dir_btn = QPushButton("Save Directory")
         self.save_dir_btn.setIcon(qta.icon('fa5s.folder-open', color='#1C2333'))
         self.save_dir_btn.clicked.connect(self.select_save_directory)
         save_layout.addWidget(self.save_dir_btn)
 
-        self.save_dir_label = QLabel("No directory selected")
+        self.save_dir_label = QLabel("Auto")
         self.save_dir_label.setStyleSheet("""
             background-color: #FFFFFF;
             border: 1px solid #D3BC8E;
-            border-radius: 8px;
-            padding: 8px 12px;
-            color: #2B3041;
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #666666;
+            font-size: 10px;
         """)
         self.save_dir_label.setWordWrap(True)
-        save_layout.addWidget(self.save_dir_label, 1)
+        self.save_dir_label.setMaximumHeight(30)
+        save_layout.addWidget(self.save_dir_label)
 
         parent_layout.addWidget(save_frame)
         self.update_save_dir_label()
@@ -1101,8 +1094,13 @@ class MultiLayerWatermarkApp(QMainWindow):
             self.save_config()
 
     def update_save_dir_label(self):
-        """更新保存目录标签"""
-        text = self.config.save_directory if self.config.save_directory else "No directory selected"
+        """更新保存目录标签 - 紧凑版"""
+        if self.config.save_directory:
+            # Show only last directory name
+            dir_name = os.path.basename(self.config.save_directory)
+            text = f"📁 {dir_name}" if dir_name else "Auto"
+        else:
+            text = "Auto"
         self.save_dir_label.setText(text)
 
 
