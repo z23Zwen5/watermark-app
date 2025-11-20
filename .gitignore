@@ -54,7 +54,6 @@ tests/
 # 测试脚本（保留tests/目录下的测试框架）
 demo_*.py
 *_demo.py
-test_geo_theme.py
 
 # 输出结果目录
 results/
