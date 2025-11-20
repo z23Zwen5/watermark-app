@@ -2,5 +2,5 @@
 REM Launch script for PyQt6 Genshin Impact Style Watermark App
 
 cd /d "%~dp0"
-python src\watermark_app_pyqt6.py
+python src\watermark_app_pyqt6_ui.py
 pause
