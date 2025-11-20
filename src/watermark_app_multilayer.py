@@ -262,13 +262,13 @@ class MultiLayerWatermarkApp:
 
     def create_text_label_section(self, parent):
         """创建文本标注设置区域"""
-        label_frame = tk.LabelFrame(parent, text="🔤 Text Label (右上角标注)", font=('Helvetica', 11, 'bold'),
+        label_frame = tk.LabelFrame(parent, text="🔤 Text Label (文字标注)", font=('Helvetica', 11, 'bold'),
                                    fg='#0095F6', bg='#FAFAFA', padx=10, pady=10)
         label_frame.pack(fill=tk.X, pady=(0, 15))
 
         # 启用标注
         self.label_enabled_var = tk.BooleanVar(value=self.text_label_config.enabled)
-        enabled_cb = ttk.Checkbutton(label_frame, text="Enable text label (add number or filename to top-right)",
+        enabled_cb = ttk.Checkbutton(label_frame, text="Enable text label (add number or filename)",
                                     variable=self.label_enabled_var,
                                     command=self.on_label_enabled_change)
         enabled_cb.pack(anchor='w', pady=(0, 8))
@@ -286,6 +286,34 @@ class MultiLayerWatermarkApp:
                                        state='readonly', width=12)
         label_type_combo.pack(side=tk.LEFT)
         label_type_combo.bind('<<ComboboxSelected>>', self.on_label_type_change)
+
+        # 位置选择
+        position_row = tk.Frame(label_frame, bg='#FAFAFA')
+        position_row.pack(fill=tk.X, pady=(0, 8))
+
+        tk.Label(position_row, text="Position:", font=('Helvetica', 9),
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+
+        self.label_position_var = tk.StringVar(value=self.text_label_config.position)
+        position_combo = ttk.Combobox(position_row, textvariable=self.label_position_var,
+                                     values=['top_left', 'top_right', 'bottom_left', 'bottom_right', 'center'],
+                                     state='readonly', width=12)
+        position_combo.pack(side=tk.LEFT)
+        position_combo.bind('<<ComboboxSelected>>', self.on_label_position_change)
+
+        # 文字方向选择
+        orientation_row = tk.Frame(label_frame, bg='#FAFAFA')
+        orientation_row.pack(fill=tk.X, pady=(0, 8))
+
+        tk.Label(orientation_row, text="Orientation:", font=('Helvetica', 9),
+                fg='#262626', bg='#FAFAFA', width=10, anchor='w').pack(side=tk.LEFT, padx=(0, 10))
+
+        self.label_orientation_var = tk.StringVar(value=self.text_label_config.orientation)
+        orientation_combo = ttk.Combobox(orientation_row, textvariable=self.label_orientation_var,
+                                        values=['horizontal', 'vertical'],
+                                        state='readonly', width=12)
+        orientation_combo.pack(side=tk.LEFT)
+        orientation_combo.bind('<<ComboboxSelected>>', self.on_label_orientation_change)
 
         # 字体选择（类似 Photoshop）
         font_row = tk.Frame(label_frame, bg='#FAFAFA')
@@ -957,6 +985,18 @@ class MultiLayerWatermarkApp:
         """标注类型改变"""
         self.text_label_config.label_type = self.label_type_var.get()
         self.save_config()
+
+    def on_label_position_change(self, event):
+        """标注位置改变"""
+        self.text_label_config.position = self.label_position_var.get()
+        self.save_config()
+        print(f"📍 位置已更改: {self.text_label_config.position}")
+
+    def on_label_orientation_change(self, event):
+        """标注方向改变"""
+        self.text_label_config.orientation = self.label_orientation_var.get()
+        self.save_config()
+        print(f"↔️ 方向已更改: {self.text_label_config.orientation}")
 
     def on_label_font_change(self, event):
         """标注字体改变"""
