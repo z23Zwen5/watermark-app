@@ -36,7 +36,7 @@ class WatermarkLayer:
         self.name = os.path.basename(image_path)
 
     def __str__(self):
-        visibility = "👁️" if self.visible else "🚫"
+        visibility = "●" if self.visible else "○"
         return f"{visibility} {self.name} ({self.blend_mode}, {self.opacity}%)"
 
 
@@ -57,9 +57,9 @@ class CustomTitleBar(QWidget):
         self.setObjectName("CustomTitleBar")
 
         # App Icon (placeholder)
-        self.icon_label = QLabel("🎨")
+        self.icon_label = QLabel("✦")
         self.icon_label.setFixedSize(24, 24)
-        self.icon_label.setStyleSheet("font-size: 18px;")
+        self.icon_label.setStyleSheet("font-size: 18px; color: #D3BC8E;")
         self.layout.addWidget(self.icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.layout.addSpacing(10)
 
@@ -316,8 +316,11 @@ class MultiLayerWatermarkApp(QMainWindow):
                 color: #D3BC8E;
                 border: 2px solid #BFA065;
                 border-radius: 12px;
-                margin-top: 20px;
-                padding: 15px;
+                margin-top: 25px;
+                padding-top: 25px;
+                padding-left: 15px;
+                padding-right: 15px;
+                padding-bottom: 15px;
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #F8F9FA, stop:1 #ECE5D8);
             }
@@ -329,8 +332,8 @@ class MultiLayerWatermarkApp(QMainWindow):
                 background-color: #ECE5D8;
                 border: 1px solid #BFA065;
                 border-radius: 8px;
-                margin-left: 15px;
-                margin-top: -10px;
+                left: 15px;
+                top: 8px;
             }
 
             /* Buttons */
@@ -542,7 +545,7 @@ class MultiLayerWatermarkApp(QMainWindow):
         title_label.setStyleSheet("color: #BFA065; padding: 10px;")
         self.content_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        subtitle_label = QLabel("🎨 Multi-Layer with Blend Modes")
+        subtitle_label = QLabel("✦ Multi-Layer with Blend Modes")
         subtitle_font = QFont("Segoe UI", 12)
         subtitle_label.setFont(subtitle_font)
         subtitle_label.setStyleSheet("color: #D3BC8E; padding-bottom: 10px;")
@@ -561,7 +564,7 @@ class MultiLayerWatermarkApp(QMainWindow):
 
     def create_upload_section(self):
         """创建文件上传区域"""
-        upload_group = QGroupBox("📁 File Upload")
+        upload_group = QGroupBox("✦ File Upload")
         layout = QVBoxLayout(upload_group)
         layout.setSpacing(10)
 
@@ -581,11 +584,11 @@ class MultiLayerWatermarkApp(QMainWindow):
 
     def create_layer_section(self):
         """创建图层管理区域"""
-        layer_group = QGroupBox("🎨 Watermark Layers")
+        layer_group = QGroupBox("✦ Watermark Layers")
         layout = QVBoxLayout(layer_group)
         layout.setSpacing(10)
 
-        tip_label = QLabel("💡 Larger layer numbers appear on top (覆盖下层)")
+        tip_label = QLabel("✦ Larger layer numbers appear on top (覆盖下层)")
         tip_label.setStyleSheet("color: #666666; font-size: 11px;")
         layout.addWidget(tip_label)
 
@@ -682,7 +685,7 @@ class MultiLayerWatermarkApp(QMainWindow):
 
     def create_settings_section(self):
         """创建基础设置区域"""
-        settings_group = QGroupBox("⚙️ Settings")
+        settings_group = QGroupBox("✦ Settings")
         layout = QVBoxLayout(settings_group)
         layout.setSpacing(10)
 
@@ -695,7 +698,7 @@ class MultiLayerWatermarkApp(QMainWindow):
 
     def create_text_label_section(self):
         """创建文本标注设置区域"""
-        label_group = QGroupBox("🔤 Text Label (文字标注)")
+        label_group = QGroupBox("✦ Text Label (文字标注)")
         layout = QVBoxLayout(label_group)
         layout.setSpacing(10)
 
@@ -765,7 +768,7 @@ class MultiLayerWatermarkApp(QMainWindow):
 
         layout.addLayout(size_row)
 
-        tip_label = QLabel("💡 Number: 1, 2, 3... | Filename: image_name")
+        tip_label = QLabel("✦ Number: 1, 2, 3... | Filename: image_name")
         tip_label.setStyleSheet("color: #666666; font-size: 10px;")
         layout.addWidget(tip_label)
 
@@ -817,7 +820,7 @@ class MultiLayerWatermarkApp(QMainWindow):
 
     def create_action_section(self):
         """创建操作按钮区域"""
-        self.apply_btn = QPushButton("🚀 Apply Multi-Layer Watermark")
+        self.apply_btn = QPushButton("✦ Apply Multi-Layer Watermark")
         self.apply_btn.setObjectName("applyButton")
         self.apply_btn.clicked.connect(self.apply_watermark_threaded)
         self.content_layout.addWidget(self.apply_btn)
@@ -1122,7 +1125,7 @@ class MultiLayerWatermarkApp(QMainWindow):
             end_time = time.time()
             processing_time = end_time - start_time
             message = f"Successfully processed {total_images} images!\nTime: {processing_time:.2f}s\nFormat: JPG (Quality 95)"
-            self.processing_complete_signal.emit(f"✅ Done! {total_images} images in {processing_time:.2f}s", message)
+            self.processing_complete_signal.emit(f"✓ Done! {total_images} images in {processing_time:.2f}s", message)
 
         except Exception as e:
             self.processing_error_signal.emit(f"Processing failed: {str(e)}")
@@ -1137,14 +1140,14 @@ class MultiLayerWatermarkApp(QMainWindow):
         self.status_label.setText(status_text)
         QMessageBox.information(self, "Complete", message)
         self.apply_btn.setEnabled(True)
-        self.apply_btn.setText("🚀 Apply Multi-Layer Watermark")
+        self.apply_btn.setText("✦ Apply Multi-Layer Watermark")
         self.progress_bar.setValue(0)
 
     def on_processing_error(self, error_message):
-        self.status_label.setText(f"❌ Error: {error_message}")
+        self.status_label.setText(f"✕ Error: {error_message}")
         QMessageBox.critical(self, "Error", error_message)
         self.apply_btn.setEnabled(True)
-        self.apply_btn.setText("🚀 Apply Multi-Layer Watermark")
+        self.apply_btn.setText("✦ Apply Multi-Layer Watermark")
         self.progress_bar.setValue(0)
 
     # Configuration methods
@@ -1247,15 +1250,15 @@ class MultiLayerWatermarkApp(QMainWindow):
                 if valid_files:
                     self.image_paths = valid_files
                     self.images = [Image.open(file_path) for file_path in valid_files]
-                    print(f"🖼️ Auto-loaded {len(valid_files)} images")
+                    print(f"✦ Auto-loaded {len(valid_files)} images")
 
             if self.watermark_layers:
                 self.update_layer_listbox()
                 if self.watermark_layers:
                     self.layer_listbox.setCurrentRow(0)
-                print(f"🎨 Auto-loaded {len(self.watermark_layers)} layers")
+                print(f"✦ Auto-loaded {len(self.watermark_layers)} layers")
         except Exception as e:
-            print(f"⚠️ Error during auto-load: {e}")
+            print(f"! Error during auto-load: {e}")
 
     def upload_images(self):
         """上传图片"""
