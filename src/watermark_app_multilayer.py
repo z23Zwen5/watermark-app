@@ -8,19 +8,13 @@ import threading
 import time
 from text_label_module import TextLabelConfig, draw_text_label
 
-class WatermarkLayer:
-    """水印图层类"""
-    def __init__(self, image_path, opacity=100, blend_mode='normal', visible=True):
-        self.image_path = image_path
-        self.image = Image.open(image_path).convert("RGBA")
-        self.opacity = int(opacity)  # 0-100，确保是整数
-        self.blend_mode = blend_mode  # normal, overlay, screen, soft_light
-        self.visible = visible  # 图层可见性（类似 Photoshop）
-        self.name = os.path.basename(image_path)
-
-    def __str__(self):
-        visibility = "👁️" if self.visible else "🚫"
-        return f"{visibility} {self.name} ({self.blend_mode}, {self.opacity}%)"
+# 导入核心业务逻辑
+from watermark_core import (
+    WatermarkLayer,
+    WatermarkEngine,
+    WatermarkConfig,
+    BatchProcessor
+)
 
 class MultiLayerWatermarkApp:
     def __init__(self, root):
@@ -31,17 +25,22 @@ class MultiLayerWatermarkApp:
         # Set minimum window size
         self.root.minsize(550, 650)
 
-        # Initialize path memory
-        self.config_file = "multilayer_watermark_config.json"
+        # 使用 watermark_core 的配置管理
+        self.config = WatermarkConfig()
+        self.config.load()
 
         # Initialize variables
         self.images = []
         self.image_paths = []
-        self.watermark_layers = []  # 多个水印图层
-        self.save_directory = None
-        self.last_used_directory = None
-        self.last_watermark_directory = None
-        self.last_images_directory = None
+        self.watermark_layers = []  # 现在使用导入的 WatermarkLayer 类
+
+        # 从 config 对象获取路径
+        self.save_directory = self.config.save_directory
+        self.last_used_directory = self.config.last_used_directory
+        self.last_watermark_directory = self.config.last_watermark_directory
+        self.last_images_directory = self.config.last_images_directory
+        self.last_images_files = self.config.last_images_files
+        self.last_stretch = self.config.last_stretch
 
         # Initialize UI variables
         self.stretch_var = None
@@ -64,11 +63,11 @@ class MultiLayerWatermarkApp:
         # 处理线程
         self.processing_thread = None
 
-        # 文本标注配置
-        self.text_label_config = TextLabelConfig()
+        # 文本标注配置（从 config 获取）
+        self.text_label_config = self.config.text_label_config
 
-        # Load configuration
-        self.load_config()
+        # 加载上次的图层
+        self.watermark_layers = self.config.layers.copy()
 
         # Create UI
         self.create_ui()
@@ -659,7 +658,10 @@ class MultiLayerWatermarkApp:
         """更新图层列表显示"""
         self.layer_listbox.delete(0, tk.END)
         for i, layer in enumerate(self.watermark_layers):
-            self.layer_listbox.insert(tk.END, f"[{i+1}] {layer}")
+            # 自定义显示格式，保持 emoji
+            visibility = "👁️" if layer.visible else "🚫"
+            display_text = f"[{i+1}] {visibility} {layer.name} ({layer.blend_mode}, {layer.opacity}%)"
+            self.layer_listbox.insert(tk.END, display_text)
 
     def update_layer_listbox_silent(self, selected_index=None):
         """更新图层列表显示（不触发选中事件）
@@ -673,7 +675,10 @@ class MultiLayerWatermarkApp:
         # 更新列表
         self.layer_listbox.delete(0, tk.END)
         for i, layer in enumerate(self.watermark_layers):
-            self.layer_listbox.insert(tk.END, f"[{i+1}] {layer}")
+            # 自定义显示格式，保持 emoji
+            visibility = "👁️" if layer.visible else "🚫"
+            display_text = f"[{i+1}] {visibility} {layer.name} ({layer.blend_mode}, {layer.opacity}%)"
+            self.layer_listbox.insert(tk.END, display_text)
 
         # 恢复选中状态
         if selected_index is not None and 0 <= selected_index < len(self.watermark_layers):
@@ -683,130 +688,19 @@ class MultiLayerWatermarkApp:
         # 重新绑定选中事件
         self.layer_listbox.bind('<<ListboxSelect>>', self.on_layer_select)
 
-    # 混合模式算法（优化版 - uint8 优化 + float32 混合模式）
-    def apply_blend_mode(self, base_array, layer_array, blend_mode, opacity):
-        """应用混合模式 - 优化版
-
-        性能优化：
-        - Normal 模式：使用 uint8 直接计算（提速 2x）
-        - 其他模式：使用 float32 保证准确性
-        """
-        opacity_factor = opacity / 100.0
-
-        # 获取 alpha 通道
-        blend_alpha = layer_array[:, :, 3]
-
-        # 如果整个图层都是透明的，直接返回
-        if np.max(blend_alpha) < 1:
-            return base_array
-
-        # Normal 模式优化：使用 uint8 直接计算（快 2 倍）
-        if blend_mode == 'normal':
-            result = base_array.copy()
-            base_rgb = base_array[:, :, :3].astype(np.uint16)
-            blend_rgb = layer_array[:, :, :3].astype(np.uint16)
-            alpha = blend_alpha.astype(np.uint16)[:, :, np.newaxis]
-
-            # 应用 opacity
-            alpha = (alpha * opacity) // 100
-
-            # 混合: result = base * (255 - alpha) / 255 + blend * alpha / 255
-            result_rgb = (base_rgb * (255 - alpha) + blend_rgb * alpha) // 255
-            result[:, :, :3] = result_rgb.astype(np.uint8)
-
-            return result
-
-        # 其他混合模式：使用 float32（保证准确性）
-        blend_alpha_f = blend_alpha.astype(np.float32) / 255.0
-        mask = blend_alpha_f * opacity_factor
-
-        # 只在有alpha的地方进行混合计算
-        has_alpha = mask > 0.001
-        if not np.any(has_alpha):
-            return base_array
-
-        # 归一化到 0-1
-        base_rgb = base_array[:, :, :3].astype(np.float32) / 255.0
-        blend_rgb = layer_array[:, :, :3].astype(np.float32) / 255.0
-
-        # 应用混合模式
-        if blend_mode == 'screen':
-            result_rgb = 1.0 - (1.0 - base_rgb) * (1.0 - blend_rgb)
-            result_rgb = result_rgb * opacity_factor + base_rgb * (1 - opacity_factor)
-        elif blend_mode == 'overlay':
-            result_rgb = np.where(base_rgb < 0.5,
-                                 2 * base_rgb * blend_rgb,
-                                 1.0 - 2 * (1.0 - base_rgb) * (1.0 - blend_rgb))
-            result_rgb = result_rgb * opacity_factor + base_rgb * (1 - opacity_factor)
-        elif blend_mode == 'soft_light':
-            result_rgb = np.where(blend_rgb < 0.5,
-                                 2 * base_rgb * blend_rgb + base_rgb * base_rgb * (1 - 2 * blend_rgb),
-                                 2 * base_rgb * (1 - blend_rgb) + np.sqrt(np.maximum(base_rgb, 0)) * (2 * blend_rgb - 1))
-            result_rgb = result_rgb * opacity_factor + base_rgb * (1 - opacity_factor)
-        else:
-            result_rgb = base_rgb
-
-        # 应用 alpha mask
-        mask_3d = mask[:, :, np.newaxis]
-        result_rgb = result_rgb * mask_3d + base_rgb * (1 - mask_3d)
-
-        # 转换回 uint8
-        result = base_array.copy()
-        result[:, :, :3] = (np.clip(result_rgb, 0, 1) * 255).astype(np.uint8)
-
-        return result
-
     def apply_multilayer_watermark(self, image):
-        """应用多图层水印 - 优化版"""
-        if image.mode != 'RGBA':
-            image = image.convert('RGBA')
+        """应用多图层水印 - 使用 WatermarkEngine"""
+        # 创建进度回调函数（适配 Tkinter）
+        def update_progress(progress):
+            self.root.after(0, lambda: self.progress_var.set(progress))
 
-        result = np.array(image, dtype=np.uint8)
-        stretch = self.stretch_var.get()
-        img_width, img_height = image.size
-
-        # 逐层应用水印
-        for layer_idx, layer in enumerate(self.watermark_layers):
-            # 跳过不可见的图层
-            if not layer.visible:
-                continue
-
-            # 计算水印尺寸（缓存计算结果）
-            if stretch:
-                new_width, new_height = img_width, img_height
-            else:
-                watermark_ratio = layer.image.width / layer.image.height
-                img_ratio = img_width / img_height
-                if img_ratio > watermark_ratio:
-                    new_width = img_width
-                    new_height = int(new_width / watermark_ratio)
-                else:
-                    new_height = img_height
-                    new_width = int(new_height * watermark_ratio)
-
-            # 缩放水印（使用 BILINEAR 提速 1.6-1.9x，质量差异肉眼难辨）
-            resized_watermark = layer.image.resize((new_width, new_height), Image.BILINEAR)
-
-            # 优化：直接创建 numpy 数组而不是 PIL Image
-            position = ((img_width - new_width) // 2, (img_height - new_height) // 2)
-
-            # 创建图层数组（只在需要的区域）
-            layer_array = np.zeros((img_height, img_width, 4), dtype=np.uint8)
-            watermark_array = np.array(resized_watermark)
-
-            # 只复制水印到对应位置（避免创建完整画布）
-            y1, y2 = position[1], position[1] + new_height
-            x1, x2 = position[0], position[0] + new_width
-            layer_array[y1:y2, x1:x2] = watermark_array
-
-            # 应用混合模式
-            result = self.apply_blend_mode(result, layer_array, layer.blend_mode, layer.opacity)
-
-            # 更新进度
-            progress = ((layer_idx + 1) / len(self.watermark_layers)) * 50
-            self.root.after(0, lambda p=progress: self.progress_var.set(p))
-
-        return Image.fromarray(result, 'RGBA')
+        # 使用 WatermarkEngine 处理
+        return WatermarkEngine.apply_multilayer_watermark(
+            image,
+            self.watermark_layers,
+            self.stretch_var.get(),
+            update_progress
+        )
 
     def apply_watermark_threaded(self):
         """在线程中处理水印"""
@@ -894,83 +788,22 @@ class MultiLayerWatermarkApp:
             self.root.after(0, lambda: self.apply_btn.config(state='normal', text='🚀 Apply Multi-Layer Watermark'))
 
     # 配置和事件处理方法
-    def load_config(self):
-        """加载配置"""
-        try:
-            config_path = os.path.join("configs", self.config_file)
-            if os.path.exists(config_path):
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    self.last_used_directory = config.get('last_used_directory')
-                    self.save_directory = config.get('save_directory')
-                    self.last_watermark_directory = config.get('last_watermark_directory')
-                    self.last_images_directory = config.get('last_images_directory')
-                    self.last_stretch = config.get('last_stretch', False)
-                    self.last_images_files = config.get('last_images_files', [])
-
-                    # 加载图层信息
-                    layers_info = config.get('layers', [])
-                    for layer_info in layers_info:
-                        if os.path.exists(layer_info['path']):
-                            layer = WatermarkLayer(
-                                layer_info['path'],
-                                int(layer_info.get('opacity', 100)),  # 确保转换为整数
-                                str(layer_info.get('blend_mode', 'normal')),  # 确保转换为字符串
-                                bool(layer_info.get('visible', True))  # 图层可见性，默认可见
-                            )
-                            self.watermark_layers.append(layer)
-
-                    # 加载文本标注配置
-                    text_label_info = config.get('text_label', {})
-                    if text_label_info:
-                        self.text_label_config.from_dict(text_label_info)
-            else:
-                self.set_default_config()
-        except Exception as e:
-            print(f"❌ 加载配置出错: {e}")
-            self.set_default_config()
-
-    def set_default_config(self):
-        """设置默认配置"""
-        self.last_used_directory = None
-        self.save_directory = None
-        self.last_watermark_directory = None
-        self.last_images_directory = None
-        self.last_stretch = False
-        self.last_images_files = []
-
     def save_config(self):
-        """保存配置"""
-        try:
-            # 保存图层信息
-            layers_info = []
-            for layer in self.watermark_layers:
-                layers_info.append({
-                    'path': layer.image_path,
-                    'opacity': int(layer.opacity),  # 确保保存为整数
-                    'blend_mode': str(layer.blend_mode),  # 确保保存为字符串
-                    'visible': bool(layer.visible)  # 图层可见性
-                })
+        """使用 WatermarkConfig 保存配置"""
+        # 更新 config 对象的属性
+        self.config.last_used_directory = self.last_used_directory
+        self.config.save_directory = self.save_directory
+        self.config.last_watermark_directory = self.last_watermark_directory
+        self.config.last_images_directory = self.last_images_directory
+        self.config.last_images_files = getattr(self, 'last_images_files', [])
 
-            config = {
-                'last_used_directory': self.last_used_directory,
-                'save_directory': self.save_directory,
-                'last_watermark_directory': self.last_watermark_directory,
-                'last_images_directory': self.last_images_directory,
-                'last_stretch': self.stretch_var.get() if self.stretch_var else self.last_stretch,
-                'last_images_files': self.last_images_files,
-                'layers': layers_info,
-                'text_label': self.text_label_config.to_dict()
-            }
-
-            # 确保configs目录存在
-            os.makedirs("configs", exist_ok=True)
-            config_path = os.path.join("configs", self.config_file)
-
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"❌ 保存配置出错: {e}")
+        # 保存配置
+        stretch = self.stretch_var.get() if self.stretch_var else False
+        self.config.save(
+            self.watermark_layers,
+            self.text_label_config,
+            stretch
+        )
 
     # 事件处理方法
     def on_stretch_change(self):
