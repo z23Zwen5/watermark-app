@@ -4,6 +4,7 @@
 Main Window - Modular Architecture
 主窗口 - 模块化架构
 """
+import time
 import threading
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -30,18 +31,25 @@ class MainWindow(QMainWindow):
     processing_error_signal = pyqtSignal(str)
 
     def __init__(self):
+        t0 = time.time()
         super().__init__()
+        print(f"  ⏱️  super().__init__: {(time.time() - t0)*1000:.0f}ms")
 
         # 无边框窗口
+        t0 = time.time()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.resize(1100, 750)
+        print(f"  ⏱️  窗口设置: {(time.time() - t0)*1000:.0f}ms")
 
         # 业务逻辑
+        t0 = time.time()
         self.config = WatermarkConfig()
         self.config.load()
+        print(f"  ⏱️  加载配置: {(time.time() - t0)*1000:.0f}ms")
 
         # 应用保存的主题设置
+        t0 = time.time()
         if hasattr(self.config, 'ui_theme'):
             ThemeManager.set_theme(self.config.ui_theme)
             # 重新应用样式
@@ -49,6 +57,7 @@ class MainWindow(QMainWindow):
             app = QApplication.instance()
             theme = ThemeManager.get_theme()
             app.setStyleSheet(theme.get_main_stylesheet())
+        print(f"  ⏱️  应用主题: {(time.time() - t0)*1000:.0f}ms")
 
         # 数据
         self.images = []
@@ -58,13 +67,19 @@ class MainWindow(QMainWindow):
         self.processing_thread = None
 
         # 创建UI
+        t0 = time.time()
         self._create_ui()
+        print(f"  ⏱️  创建UI: {(time.time() - t0)*1000:.0f}ms")
 
         # 连接信号
+        t0 = time.time()
         self._connect_signals()
+        print(f"  ⏱️  连接信号: {(time.time() - t0)*1000:.0f}ms")
 
         # 加载初始数据
+        t0 = time.time()
         self._load_initial_data()
+        print(f"  ⏱️  加载初始数据: {(time.time() - t0)*1000:.0f}ms")
 
     def _create_ui(self):
         """创建UI"""
@@ -159,7 +174,9 @@ class MainWindow(QMainWindow):
     def _load_initial_data(self):
         """加载初始数据"""
         # 设置图层
+        t0 = time.time()
         self.layer_panel.set_layers(self.config.layers)
+        print(f"    ⏱️  加载图层 ({len(self.config.layers)}个): {(time.time() - t0)*1000:.0f}ms")
 
         # 设置其他配置
         self.settings_panel.set_stretch(self.config.last_stretch)
@@ -172,7 +189,9 @@ class MainWindow(QMainWindow):
         self.output_panel.update_path_label()
 
         # 自动加载上次的文件
+        t0 = time.time()
         self.upload_panel.load_last_files()
+        print(f"    ⏱️  加载上次文件: {(time.time() - t0)*1000:.0f}ms")
 
     def _toggle_maximize(self):
         """切换最大化状态"""
