@@ -90,6 +90,7 @@ class MainWindow(QMainWindow):
         # self.setStyleSheet(theme.get_main_stylesheet())
 
         # 中心部件
+        t0 = time.time()
         self.center_widget = QWidget()
         self.center_widget.setObjectName("CenterWidget")
         self.setCentralWidget(self.center_widget)
@@ -97,12 +98,16 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(self.center_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+        print(f"    ⏱️  中心部件: {(time.time() - t0)*1000:.0f}ms")
 
         # 标题栏
+        t0 = time.time()
         self.title_bar = CustomTitleBar(self)
         main_layout.addWidget(self.title_bar)
+        print(f"    ⏱️  标题栏: {(time.time() - t0)*1000:.0f}ms")
 
         # 创建滚动区域
+        t0 = time.time()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
 
@@ -110,13 +115,19 @@ class MainWindow(QMainWindow):
         content_layout = QHBoxLayout(content_widget)
         content_layout.setContentsMargins(25, 25, 25, 25)
         content_layout.setSpacing(25)
+        print(f"    ⏱️  滚动区域: {(time.time() - t0)*1000:.0f}ms")
 
         # 左列：上传 + 图层
         left_column = QVBoxLayout()
         left_column.setSpacing(20)
 
+        t0 = time.time()
         self.upload_panel = UploadPanel(self.config)
+        print(f"    ⏱️  上传面板: {(time.time() - t0)*1000:.0f}ms")
+
+        t0 = time.time()
         self.layer_panel = LayerPanel(self.config)
+        print(f"    ⏱️  图层面板: {(time.time() - t0)*1000:.0f}ms")
 
         left_column.addWidget(self.upload_panel)
         left_column.addWidget(self.layer_panel)
@@ -125,9 +136,17 @@ class MainWindow(QMainWindow):
         right_column = QVBoxLayout()
         right_column.setSpacing(20)
 
+        t0 = time.time()
         self.settings_panel = SettingsPanel()
+        print(f"    ⏱️  设置面板: {(time.time() - t0)*1000:.0f}ms")
+
+        t0 = time.time()
         self.text_label_panel = TextLabelPanel(self.config.text_label_config)
+        print(f"    ⏱️  文本标注面板: {(time.time() - t0)*1000:.0f}ms")
+
+        t0 = time.time()
         self.output_panel = OutputPanel(self.config)
+        print(f"    ⏱️  输出面板: {(time.time() - t0)*1000:.0f}ms")
 
         right_column.addWidget(self.settings_panel)
         right_column.addWidget(self.text_label_panel)
