@@ -17,7 +17,7 @@ REM 设置路径
 set "PROJECT_ROOT=%~dp0.."
 set "BUILD_DIR=%PROJECT_ROOT%\build"
 set "DIST_DIR=%PROJECT_ROOT%\dist"
-set "SRC_FILE=%PROJECT_ROOT%\src\watermark_app_pyqt6.py"
+set "SRC_FILE=%PROJECT_ROOT%\src\watermark_app_pyqt6_ui.py"
 set "ICON_FILE=%PROJECT_ROOT%\assets\watermark_app_icon.ico"
 
 echo [1/8] 检查 Python 环境...
@@ -62,7 +62,7 @@ if not exist "%SRC_FILE%" (
     pause
     exit /b 1
 )
-echo [OK] 源文件: watermark_app_pyqt6.py
+echo [OK] 源文件: watermark_app_pyqt6_ui.py
 echo.
 
 echo [4.5/8] 检查 PyQt6 依赖...

@@ -17,7 +17,7 @@ echo ""
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 DIST_DIR="$PROJECT_ROOT/dist"
-SRC_FILE="$PROJECT_ROOT/src/watermark_app_pyqt6.py"
+SRC_FILE="$PROJECT_ROOT/src/watermark_app_pyqt6_ui.py"
 ICON_FILE="$PROJECT_ROOT/assets/watermark_app_icon.ico"
 
 echo "[1/8] 检查 Python 环境..."
@@ -53,7 +53,7 @@ if [ ! -f "$SRC_FILE" ]; then
     echo "[ERROR] 源文件不存在: $SRC_FILE"
     exit 1
 fi
-echo "[OK] 源文件: watermark_app_pyqt6.py"
+echo "[OK] 源文件: watermark_app_pyqt6_ui.py"
 echo ""
 
 echo "[4.5/8] 检查 PyQt6 依赖..."
