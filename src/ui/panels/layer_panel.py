@@ -86,7 +86,8 @@ class LayerPanel(QWidget):
         # 属性面板
         t0 = time.time()
         self.prop_frame = QFrame()
-        self.prop_frame.setStyleSheet(
+        # 延迟应用样式：避免启动时渲染复杂样式（border-radius 很慢）
+        prop_style = (
             f"background: {self.theme.panel_overlay}; border-radius: 8px; "
             f"padding: 8px; border: 1px solid {self.theme.accent_primary_dark};"
         )
@@ -123,11 +124,14 @@ class LayerPanel(QWidget):
         row2.addWidget(self.opacity_val)
         prop_layout.addLayout(row2)
 
-        # 延迟禁用：先添加到布局，稍后再禁用（避免启动时样式重算）
+        # 延迟应用样式和禁用：避免阻塞启动
         vbox.addWidget(self.prop_frame)
-        # 使用 QTimer 延迟禁用（0ms 延迟，在事件循环中执行）
+        # 使用 QTimer 延迟应用（在窗口显示后执行）
         from PyQt6.QtCore import QTimer
-        QTimer.singleShot(0, lambda: self.prop_frame.setEnabled(False))
+        def _apply_delayed():
+            self.prop_frame.setStyleSheet(prop_style)
+            self.prop_frame.setEnabled(False)
+        QTimer.singleShot(0, _apply_delayed)
         print(f"      ⏱️  图层面板-属性面板: {(time.time() - t0)*1000:.0f}ms")
 
     def set_layers(self, layers):
