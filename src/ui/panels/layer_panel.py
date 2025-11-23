@@ -5,6 +5,7 @@ Layer Panel - Watermark Layer Management
 图层管理面板
 """
 import os
+import time
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget,
     QPushButton, QSlider, QComboBox, QLabel, QFrame,
@@ -38,20 +39,25 @@ class LayerPanel(QWidget):
 
     def _create_ui(self):
         """创建UI"""
+        t0 = time.time()
         group = QGroupBox("Watermark Layers")
         layout = QVBoxLayout(self)
         layout.addWidget(group)
 
         vbox = QVBoxLayout(group)
         vbox.setSpacing(10)
+        print(f"      ⏱️  图层面板-基础布局: {(time.time() - t0)*1000:.0f}ms")
 
         # 图层列表
+        t0 = time.time()
         self.layer_list = QListWidget()
         self.layer_list.setMinimumHeight(150)
         self.layer_list.itemSelectionChanged.connect(self._on_layer_select)
         vbox.addWidget(self.layer_list)
+        print(f"      ⏱️  图层面板-列表控件: {(time.time() - t0)*1000:.0f}ms")
 
         # 工具栏
+        t0 = time.time()
         hbox_tools = QHBoxLayout()
         cmds = [
             ('fa5s.plus', self._add_layer, "Add Layer"),
@@ -62,6 +68,7 @@ class LayerPanel(QWidget):
         ]
 
         for icon, func, tip in cmds:
+            t1 = time.time()
             btn = QPushButton()
             btn.setIcon(qta.icon(icon, color=self.theme.icon_color))
             btn.setFixedSize(34, 34)
@@ -70,11 +77,14 @@ class LayerPanel(QWidget):
             btn.setStyleSheet(self.theme.get_button_stylesheet('icon'))
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             hbox_tools.addWidget(btn)
+            print(f"        ⏱️  图标按钮 {icon}: {(time.time() - t1)*1000:.0f}ms")
 
         hbox_tools.addStretch()
         vbox.addLayout(hbox_tools)
+        print(f"      ⏱️  图层面板-工具栏: {(time.time() - t0)*1000:.0f}ms")
 
         # 属性面板
+        t0 = time.time()
         self.prop_frame = QFrame()
         self.prop_frame.setStyleSheet(
             f"background: {self.theme.panel_overlay}; border-radius: 8px; "
@@ -115,6 +125,7 @@ class LayerPanel(QWidget):
 
         self.prop_frame.setEnabled(False)
         vbox.addWidget(self.prop_frame)
+        print(f"      ⏱️  图层面板-属性面板: {(time.time() - t0)*1000:.0f}ms")
 
     def set_layers(self, layers):
         """设置图层列表"""
