@@ -16,11 +16,18 @@ class WatermarkLayer:
     """水印图层类"""
     def __init__(self, image_path, opacity=100, blend_mode='normal', visible=True):
         self.image_path = image_path
-        self.image = Image.open(image_path).convert("RGBA")
+        self._image = None  # 延迟加载：仅在需要时加载
         self.opacity = int(opacity)
         self.blend_mode = blend_mode
         self.visible = visible
         self.name = os.path.basename(image_path)
+
+    @property
+    def image(self):
+        """延迟加载图片（仅在首次访问时打开）"""
+        if self._image is None:
+            self._image = Image.open(self.image_path).convert("RGBA")
+        return self._image
 
     def __str__(self):
         visibility = "●" if self.visible else "○"
