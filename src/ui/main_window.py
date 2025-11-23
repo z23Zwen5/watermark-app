@@ -218,9 +218,8 @@ class MainWindow(QMainWindow):
         # 显示提示消息
         dlg = GenshinMessageBox(
             self,
-            "Theme Changed",
-            f"Theme switched to {new_theme.display_name}!\n\n"
-            "Note: Some UI elements may need a restart to fully update.",
+            "Theme Switched",
+            f"Successfully switched to {new_theme.display_name} theme!",
             "success"
         )
         dlg.exec()

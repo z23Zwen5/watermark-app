@@ -116,7 +116,6 @@ class CyberpunkTheme(Theme):
             background-color: {self.bg_light};
             border-radius: 12px;
             border: 2px solid {self.accent_primary};
-            box-shadow: 0 0 20px {self.accent_primary};
         }}
 
         /* Generic Labels */
@@ -165,7 +164,6 @@ class CyberpunkTheme(Theme):
         }}
         QLineEdit:focus, QComboBox:focus {{
             border: 1px solid {self.accent_primary};
-            box-shadow: 0 0 8px {self.accent_primary};
         }}
 
         /* ComboBox */
@@ -245,12 +243,10 @@ class CyberpunkTheme(Theme):
         QCheckBox::indicator:hover {{
             border-color: {self.accent_primary};
             background: {self.bg_dark};
-            box-shadow: 0 0 8px {self.accent_primary};
         }}
         QCheckBox::indicator:checked {{
             background-color: {self.accent_primary};
             border: 2px solid {self.accent_primary_light};
-            box-shadow: 0 0 10px {self.accent_primary};
         }}
 
         /* Sliders */
@@ -268,7 +264,6 @@ class CyberpunkTheme(Theme):
             background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
                 stop:0 {self.accent_primary}, stop:1 {self.btn_grad_end});
             border-radius: 3px;
-            box-shadow: 0 0 8px {self.accent_primary};
         }}
         QSlider::handle:horizontal {{
             background: {self.accent_primary_light};
@@ -276,12 +271,10 @@ class CyberpunkTheme(Theme):
             width: 18px; height: 18px;
             margin: -7px 0;
             border-radius: 9px;
-            box-shadow: 0 0 12px {self.accent_primary};
         }}
         QSlider::handle:horizontal:hover {{
             background: white;
             border-color: {self.accent_primary_light};
-            box-shadow: 0 0 16px {self.accent_primary_light};
         }}
 
         /* Progress Bar */
@@ -296,7 +289,6 @@ class CyberpunkTheme(Theme):
             background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
                                               stop:0 {self.accent_primary}, stop:1 {self.btn_grad_end});
             border-radius: 5px;
-            box-shadow: 0 0 10px {self.accent_primary};
         }}
     """
 
@@ -314,24 +306,20 @@ class CyberpunkTheme(Theme):
             font-weight: bold;
             font-size: 15px;
             padding: 8px 20px;
-            box-shadow: 0 0 15px {self.accent_primary};
         }}
         QPushButton:hover {{
             background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 {self.accent_primary_light}, stop:1 {self.accent_primary});
             border: 1px solid {self.accent_primary_light};
-            box-shadow: 0 0 25px {self.accent_primary_light};
         }}
         QPushButton:pressed {{
             background-color: {self.btn_grad_end};
             padding-top: 10px;
-            box-shadow: 0 0 10px {self.accent_primary};
         }}
         QPushButton:disabled {{
             background-color: #2a2a3e;
             border: 1px solid #444;
             color: #666;
-            box-shadow: none;
         }}
     """
         elif style_type == 'secondary':
@@ -350,7 +338,6 @@ class CyberpunkTheme(Theme):
             background-color: {self.bg_input};
             border: 1px solid {self.accent_primary};
             color: {self.accent_primary_light};
-            box-shadow: 0 0 12px {self.accent_primary};
         }}
     """
         elif style_type == 'icon':
