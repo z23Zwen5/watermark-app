@@ -191,6 +191,7 @@ class WatermarkConfig:
         self.last_images_directory = None
         self.last_stretch = False
         self.last_images_files = []
+        self.ui_theme = 'genshin'  # UI 主题 (genshin/cyberpunk)
         self.layers = []
         self.text_label_config = TextLabelConfig()
 
@@ -207,6 +208,7 @@ class WatermarkConfig:
                     self.last_images_directory = config.get('last_images_directory')
                     self.last_stretch = config.get('last_stretch', False)
                     self.last_images_files = config.get('last_images_files', [])
+                    self.ui_theme = config.get('ui_theme', 'genshin')
 
                     # 加载图层
                     self.layers = []
@@ -244,6 +246,7 @@ class WatermarkConfig:
                 'last_images_directory': self.last_images_directory,
                 'last_stretch': stretch,
                 'last_images_files': self.last_images_files,
+                'ui_theme': self.ui_theme,
                 'layers': layers_info,
                 'text_label': text_label_config.to_dict()
             }

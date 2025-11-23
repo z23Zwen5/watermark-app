@@ -41,6 +41,15 @@ class MainWindow(QMainWindow):
         self.config = WatermarkConfig()
         self.config.load()
 
+        # 应用保存的主题设置
+        if hasattr(self.config, 'ui_theme'):
+            ThemeManager.set_theme(self.config.ui_theme)
+            # 重新应用样式
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            theme = ThemeManager.get_theme()
+            app.setStyleSheet(theme.get_main_stylesheet())
+
         # 数据
         self.images = []
         self.image_paths = []
@@ -132,6 +141,7 @@ class MainWindow(QMainWindow):
 
         # 设置面板
         self.settings_panel.stretch_changed.connect(self._on_stretch_changed)
+        self.settings_panel.theme_changed.connect(self._on_theme_changed)
 
         # 文本标注面板
         self.text_label_panel.config_changed.connect(self._on_text_label_changed)
@@ -153,6 +163,10 @@ class MainWindow(QMainWindow):
 
         # 设置其他配置
         self.settings_panel.set_stretch(self.config.last_stretch)
+
+        # 设置主题选择器
+        if hasattr(self.config, 'ui_theme'):
+            self.settings_panel.set_theme(self.config.ui_theme)
 
         # 更新输出目录显示
         self.output_panel.update_path_label()
@@ -181,6 +195,35 @@ class MainWindow(QMainWindow):
         """拉伸设置改变"""
         self.config.last_stretch = value
         self._save_config()
+
+    def _on_theme_changed(self, theme_name):
+        """主题改变"""
+        # 切换主题
+        ThemeManager.set_theme(theme_name)
+
+        # 获取应用实例
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+
+        # 获取新主题
+        new_theme = ThemeManager.get_theme()
+
+        # 应用新样式
+        app.setStyleSheet(new_theme.get_main_stylesheet())
+
+        # 保存主题设置到配置
+        self.config.ui_theme = theme_name
+        self._save_config()
+
+        # 显示提示消息
+        dlg = GenshinMessageBox(
+            self,
+            "Theme Changed",
+            f"Theme switched to {new_theme.display_name}!\n\n"
+            "Note: Some UI elements may need a restart to fully update.",
+            "success"
+        )
+        dlg.exec()
 
     def _on_text_label_changed(self, config_dict):
         """文本标注配置改变"""
