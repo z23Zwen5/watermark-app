@@ -13,8 +13,11 @@ Text Label Module for Watermark App
 
 from PIL import Image, ImageDraw, ImageFont
 import os
+import json
 import colorsys
 import platform
+import threading
+from pathlib import Path
 
 
 def scan_system_fonts():
@@ -94,15 +97,144 @@ def scan_system_fonts():
 
 # 全局字体缓存（应用启动时扫描一次）
 _SYSTEM_FONTS_CACHE = None
+_FONT_CACHE_FILE = Path.home() / '.watermark_app_fonts_cache.json'
+_FONT_SCAN_THREAD = None
+
+
+def _get_font_dirs_mtime():
+    """获取字体目录的最新修改时间"""
+    system = platform.system()
+    font_dirs = []
+
+    if system == 'Windows':
+        font_dirs = [
+            'C:/Windows/Fonts',
+            os.path.expanduser('~\\AppData\\Local\\Microsoft\\Windows\\Fonts')
+        ]
+    elif system == 'Darwin':
+        font_dirs = [
+            '/Library/Fonts',
+            '/System/Library/Fonts',
+            os.path.expanduser('~/Library/Fonts')
+        ]
+    else:
+        font_dirs = [
+            '/usr/share/fonts',
+            '/usr/local/share/fonts',
+            os.path.expanduser('~/.fonts'),
+            os.path.expanduser('~/.local/share/fonts')
+        ]
+
+    max_mtime = 0
+    for font_dir in font_dirs:
+        if os.path.exists(font_dir):
+            try:
+                mtime = os.path.getmtime(font_dir)
+                max_mtime = max(max_mtime, mtime)
+            except:
+                pass
+    return max_mtime
+
+
+def _load_font_cache():
+    """从磁盘加载字体缓存
+
+    Returns:
+        dict or None: 字体字典，如果缓存无效返回 None
+    """
+    if not _FONT_CACHE_FILE.exists():
+        return None
+
+    try:
+        with open(_FONT_CACHE_FILE, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+
+        # 检查缓存是否过期（字体目录是否有更新）
+        cached_mtime = cache_data.get('mtime', 0)
+        current_mtime = _get_font_dirs_mtime()
+
+        if current_mtime > cached_mtime:
+            print("⚠️ 字体目录已更新，缓存已过期")
+            return None
+
+        fonts = cache_data.get('fonts', {})
+        print(f"✅ 从缓存加载 {len(fonts)} 个字体")
+        return fonts
+    except Exception as e:
+        print(f"⚠️ 加载字体缓存失败: {e}")
+        return None
+
+
+def _save_font_cache(fonts):
+    """保存字体缓存到磁盘
+
+    Args:
+        fonts: 字体字典 {name: path}
+    """
+    try:
+        cache_data = {
+            'mtime': _get_font_dirs_mtime(),
+            'fonts': fonts
+        }
+        with open(_FONT_CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f, ensure_ascii=False, indent=2)
+        print(f"💾 已保存字体缓存到 {_FONT_CACHE_FILE}")
+    except Exception as e:
+        print(f"⚠️ 保存字体缓存失败: {e}")
+
 
 def get_system_fonts():
-    """获取系统字体（带缓存）"""
+    """获取系统字体（带磁盘缓存）
+
+    优先从磁盘缓存加载，如果缓存不存在或过期，则返回空字典并在后台扫描
+    """
     global _SYSTEM_FONTS_CACHE
+
     if _SYSTEM_FONTS_CACHE is None:
-        print("🔍 正在扫描系统字体...")
-        _SYSTEM_FONTS_CACHE = scan_system_fonts()
-        print(f"✅ 找到 {len(_SYSTEM_FONTS_CACHE)} 个字体")
+        # 尝试从缓存加载
+        cached_fonts = _load_font_cache()
+        if cached_fonts:
+            _SYSTEM_FONTS_CACHE = cached_fonts
+            return _SYSTEM_FONTS_CACHE
+
+        # 缓存不可用，返回空字典（后台扫描由 UI 触发）
+        print("⚠️ 字体缓存不可用，需要扫描")
+        return {}
+
     return _SYSTEM_FONTS_CACHE
+
+
+def scan_fonts_async(callback=None):
+    """异步扫描系统字体（后台线程）
+
+    Args:
+        callback: 扫描完成后的回调函数 func(fonts_dict)
+    """
+    global _FONT_SCAN_THREAD, _SYSTEM_FONTS_CACHE
+
+    def _scan_task():
+        global _SYSTEM_FONTS_CACHE
+        print("🔍 后台扫描系统字体...")
+        fonts = scan_system_fonts()
+        print(f"✅ 扫描完成，找到 {len(fonts)} 个字体")
+
+        # 保存到缓存
+        _save_font_cache(fonts)
+
+        # 更新全局缓存
+        _SYSTEM_FONTS_CACHE = fonts
+
+        # 调用回调
+        if callback:
+            callback(fonts)
+
+    # 如果已经有扫描线程在运行，不重复启动
+    if _FONT_SCAN_THREAD and _FONT_SCAN_THREAD.is_alive():
+        print("⚠️ 字体扫描已在进行中")
+        return
+
+    _FONT_SCAN_THREAD = threading.Thread(target=_scan_task, daemon=True)
+    _FONT_SCAN_THREAD.start()
 
 
 class TextLabelConfig:

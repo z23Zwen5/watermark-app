@@ -72,16 +72,19 @@ class UploadPanel(QWidget):
             self.images_selected.emit(self.image_paths, self.images)
 
     def load_last_files(self):
-        """自动加载上次的文件"""
+        """自动加载上次的文件（仅记录路径，不加载图片以加快启动）"""
         if self.config.last_images_files:
             valid = [f for f in self.config.last_images_files if os.path.exists(f)]
             if valid:
                 self.image_paths = valid
-                self.images = [Image.open(p) for p in valid]
-                self.img_count_label.setText(f"{len(valid)} images loaded")
-                self.img_count_label.setStyleSheet(f"color: {self.theme.text_highlight}; font-weight: bold;")
-                # 发射信号
-                self.images_selected.emit(self.image_paths, self.images)
+                # 延迟加载：仅记录路径，不立即打开图片（加快启动速度）
+                # self.images = [Image.open(p) for p in valid]  # 旧版本：启动时加载所有图片
+                self.images = []  # 暂时为空，在处理时再加载
+
+                # 显示提示信息
+                self.img_count_label.setText(f"{len(valid)} images ready (click to reload)")
+                self.img_count_label.setStyleSheet(f"color: {self.theme.text_secondary}; font-style: italic;")
+                # 不发射信号，让用户手动重新选择图片
 
     def get_images(self):
         """获取已选择的图片"""
