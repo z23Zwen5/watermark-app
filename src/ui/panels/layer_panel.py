@@ -123,8 +123,11 @@ class LayerPanel(QWidget):
         row2.addWidget(self.opacity_val)
         prop_layout.addLayout(row2)
 
-        self.prop_frame.setEnabled(False)
+        # 延迟禁用：先添加到布局，稍后再禁用（避免启动时样式重算）
         vbox.addWidget(self.prop_frame)
+        # 使用 QTimer 延迟禁用（0ms 延迟，在事件循环中执行）
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self.prop_frame.setEnabled(False))
         print(f"      ⏱️  图层面板-属性面板: {(time.time() - t0)*1000:.0f}ms")
 
     def set_layers(self, layers):
