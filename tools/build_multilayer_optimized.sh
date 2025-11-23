@@ -1,5 +1,6 @@
 #!/bin/bash
 # Multi-Layer Watermark App v1.6.2 优化构建脚本 (Linux/macOS)
+# PyQt6 版本 - Genshin Impact 风格界面
 # 优化重点: 使用 onedir 模式，大幅提升启动速度（5-7秒 -> 0.5-1秒）
 # 详细分析见: docs/STARTUP_PERFORMANCE_ANALYSIS.md
 
@@ -7,7 +8,7 @@ set -e  # 遇到错误立即退出
 
 echo "========================================"
 echo "  Multi-Layer Watermark Build Script"
-echo "  Version: v1.6.2 (Optimized)"
+echo "  Version: v1.6.2 PyQt6 (Optimized)"
 echo "  Mode: onedir (Fast Startup)"
 echo "========================================"
 echo ""
@@ -16,7 +17,7 @@ echo ""
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 DIST_DIR="$PROJECT_ROOT/dist"
-SRC_FILE="$PROJECT_ROOT/src/watermark_app_multilayer.py"
+SRC_FILE="$PROJECT_ROOT/src/watermark_app_pyqt6.py"
 ICON_FILE="$PROJECT_ROOT/assets/watermark_app_icon.ico"
 
 echo "[1/8] 检查 Python 环境..."
@@ -52,7 +53,19 @@ if [ ! -f "$SRC_FILE" ]; then
     echo "[ERROR] 源文件不存在: $SRC_FILE"
     exit 1
 fi
-echo "[OK] 源文件: watermark_app_multilayer.py"
+echo "[OK] 源文件: watermark_app_pyqt6.py"
+echo ""
+
+echo "[4.5/8] 检查 PyQt6 依赖..."
+if ! python3 -c "import PyQt6" 2>/dev/null; then
+    echo "[WARN] PyQt6 未安装，正在安装..."
+    pip3 install PyQt6 qtawesome
+fi
+if ! python3 -c "import qtawesome" 2>/dev/null; then
+    echo "[WARN] qtawesome 未安装，正在安装..."
+    pip3 install qtawesome
+fi
+echo "[OK] PyQt6 和 qtawesome 已安装"
 echo ""
 
 echo "[5/8] 检查图标文件..."
@@ -80,26 +93,35 @@ echo ""
 echo "[7/8] 开始构建（优化模式）..."
 echo "========================================"
 echo "优化说明:"
+echo "  [✓] PyQt6 版本 - 现代化界面"
 echo "  [✓] onedir 模式 - 启动速度提升 2-4 秒"
-echo "  [✓] 移除不必要的隐藏导入"
+echo "  [✓] 自动检测依赖"
 echo "  [✓] 优化 DLL 加载"
 echo "========================================"
 echo ""
 cd "$PROJECT_ROOT"
 
-# 使用 PyInstaller 构建（优化版）
+# 使用 PyInstaller 构建（优化版 PyQt6）
 # 关键变化：
 #   1. --onedir (替代 --onefile) - 大幅提升启动速度
-#   2. 移除过多的 --hidden-import（让 PyInstaller 自动检测）
+#   2. 添加 PyQt6 必要的隐藏导入
 #   3. 添加 --noupx（避免 UPX 压缩带来的启动延迟）
+#   4. 收集 qtawesome 数据文件
 
 python3 -m PyInstaller \
-    --name=WatermarkApp_v1.6.2_Optimized \
+    --name=WatermarkApp_PyQt6_v1.6.2_Optimized \
     --onedir \
     --windowed \
     --clean \
     --noupx \
     $ICON_ARG \
+    --hidden-import=PyQt6.QtCore \
+    --hidden-import=PyQt6.QtWidgets \
+    --hidden-import=PyQt6.QtGui \
+    --hidden-import=qtawesome \
+    --collect-data qtawesome \
+    --hidden-import=numpy \
+    --hidden-import=PIL \
     --distpath="$DIST_DIR" \
     --workpath="$BUILD_DIR/temp" \
     --specpath="$BUILD_DIR" \
@@ -112,12 +134,12 @@ echo "========================================"
 echo ""
 
 # 检查输出目录
-OUTPUT_DIR="$DIST_DIR/WatermarkApp_v1.6.2_Optimized"
-EXE_FILE="$OUTPUT_DIR/WatermarkApp_v1.6.2_Optimized"
+OUTPUT_DIR="$DIST_DIR/WatermarkApp_PyQt6_v1.6.2_Optimized"
+EXE_FILE="$OUTPUT_DIR/WatermarkApp_PyQt6_v1.6.2_Optimized"
 
 if [ -f "$EXE_FILE" ]; then
     echo "[OK] 输出目录: $OUTPUT_DIR"
-    echo "[OK] 主程序: WatermarkApp_v1.6.2_Optimized"
+    echo "[OK] 主程序: WatermarkApp_PyQt6_v1.6.2_Optimized"
     echo ""
 
     # 显示目录大小
@@ -129,6 +151,9 @@ if [ -f "$EXE_FILE" ]; then
     echo "  性能优化说明"
     echo "========================================"
     echo ""
+    echo "界面版本:"
+    echo "  PyQt6 版本 - Genshin Impact 风格 ✓"
+    echo ""
     echo "启动速度对比:"
     echo "  onefile 模式:  5-7 秒   (旧版)"
     echo "  onedir 模式:   0.5-1 秒 (当前) ✓"
@@ -136,7 +161,7 @@ if [ -f "$EXE_FILE" ]; then
     echo "分发方式:"
     echo "  1. 压缩整个文件夹: $OUTPUT_DIR"
     echo "  2. 分发给用户后解压使用"
-    echo "  3. 运行: ./WatermarkApp_v1.6.2_Optimized"
+    echo "  3. 运行: ./WatermarkApp_PyQt6_v1.6.2_Optimized"
     echo ""
     echo "下一步优化（可选）:"
     echo "  - 实施代码层面优化（延迟加载、异步字体扫描）"
@@ -151,23 +176,29 @@ echo "[8/8] 创建快速启动说明文件..."
 README_FILE="$OUTPUT_DIR/README_快速开始.txt"
 if [ -f "$EXE_FILE" ]; then
     cat > "$README_FILE" << 'EOF'
-Multi-Layer Watermark App v1.6.2 - 快速开始
+Multi-Layer Watermark App v1.6.2 PyQt6 - 快速开始
 ========================================
 
+界面版本:
+  PyQt6 版本 - Genshin Impact 原神风格界面
+
 运行方法:
-  ./WatermarkApp_v1.6.2_Optimized
+  ./WatermarkApp_PyQt6_v1.6.2_Optimized
 
 优化说明:
   - 使用 onedir 模式，启动速度提升 5-10 倍
   - 从 5-7 秒降至 0.5-1 秒
+  - PyQt6 现代化界面，更流畅的用户体验
 
 分发说明:
   - 需要分发整个文件夹（而非单个可执行文件）
   - 请保持所有库文件在同一目录
+  - 包含 PyQt6 运行时库
 
 故障排除:
-  - 如果启动失败，检查执行权限: chmod +x WatermarkApp_v1.6.2_Optimized
+  - 如果启动失败，检查执行权限: chmod +x WatermarkApp_PyQt6_v1.6.2_Optimized
   - 确保所有文件解压到同一目录
+  - 需要较新的操作系统（Linux: glibc 2.28+, macOS: 10.14+）
 
 文档资源:
   - GitHub: https://github.com/z23Zwen5/watermark-app
