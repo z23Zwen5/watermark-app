@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QCheckBox,
     QComboBox, QSlider, QLabel, QGroupBox, QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from text_label_module import get_system_fonts
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from text_label_module import get_system_fonts, scan_fonts_async
 
 
 class TextLabelPanel(QWidget):
@@ -68,8 +68,19 @@ class TextLabelPanel(QWidget):
         # 字体选择
         row_font = QHBoxLayout()
         self.cb_font = QComboBox()
-        sys_fonts = sorted(get_system_fonts().keys())
-        self.cb_font.addItems(['(Auto)'] + sys_fonts)
+
+        # 获取字体（从缓存或空）
+        sys_fonts_dict = get_system_fonts()
+        if sys_fonts_dict:
+            # 缓存可用，直接加载
+            sys_fonts = sorted(sys_fonts_dict.keys())
+            self.cb_font.addItems(['(Auto)'] + sys_fonts)
+        else:
+            # 缓存不可用，显示加载提示并触发后台扫描
+            self.cb_font.addItems(['(Auto)', '(Loading fonts...)'])
+            # 触发异步扫描
+            scan_fonts_async(self._on_fonts_loaded)
+
         self.cb_font.setCurrentText(self.text_label_config.font_name or '(Auto)')
         self.cb_font.currentTextChanged.connect(self._on_font_change)
         self.cb_font.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -126,6 +137,29 @@ class TextLabelPanel(QWidget):
     def _emit_config(self):
         """发射配置改变信号"""
         self.config_changed.emit(self.text_label_config.to_dict())
+
+    def _on_fonts_loaded(self, fonts_dict):
+        """字体加载完成回调（从后台线程调用）"""
+        # 使用 QTimer 在主线程更新 UI
+        QTimer.singleShot(0, lambda: self._update_font_list(fonts_dict))
+
+    def _update_font_list(self, fonts_dict):
+        """更新字体列表（在主线程）"""
+        # 保存当前选择
+        current_font = self.cb_font.currentText()
+
+        # 清空并重新填充
+        self.cb_font.clear()
+        sys_fonts = sorted(fonts_dict.keys())
+        self.cb_font.addItems(['(Auto)'] + sys_fonts)
+
+        # 恢复之前的选择
+        if current_font and current_font != '(Loading fonts...)':
+            index = self.cb_font.findText(current_font)
+            if index >= 0:
+                self.cb_font.setCurrentIndex(index)
+
+        print(f"✅ UI已更新，加载 {len(sys_fonts)} 个字体")
 
     def get_config(self):
         """获取配置"""
