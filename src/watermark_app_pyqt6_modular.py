@@ -24,6 +24,16 @@ def main():
     app = QApplication(sys.argv)
     print(f"⏱️  创建 QApplication: {(time.time() - t0)*1000:.0f}ms")
 
+    # 预加载 qtawesome 图标字体（避免首次使用时延迟）
+    t0 = time.time()
+    try:
+        import qtawesome as qta
+        # 创建一个临时图标来触发字体加载
+        _ = qta.icon('fa5s.circle')
+        print(f"⏱️  预加载图标字体: {(time.time() - t0)*1000:.0f}ms")
+    except:
+        print(f"⏱️  预加载图标字体: 失败")
+
     # 应用全局样式
     t0 = time.time()
     apply_global_style(app)
