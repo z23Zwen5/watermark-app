@@ -1,213 +1,94 @@
 # 🎨 Multi-Layer Watermark App
 
-> 专业的多图层水印应用 | 支持 Photoshop 混合模式 + 文本标注
+> 专业多图层水印应用 | PyQt6 模块化架构 | 多主题支持
 
-[![Version](https://img.shields.io/badge/version-1.6.2-blue.svg)](docs/VERSION_1.5_RELEASE_NOTES.md)
+[![Version](https://img.shields.io/badge/version-2.0-blue.svg)](CLAUDE.md)
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+[![PyQt6](https://img.shields.io/badge/PyQt6-6.0+-orange.svg)](https://www.riverbankcomputing.com/software/pyqt/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
-## 🌟 NEW: 原神风格 PyQt6 版本
+## 🌟 v2.0 新特性
 
-现在提供两个版本供您选择：
+### 🎨 多主题支持
+- **Genshin Impact** - 温暖金色调，优雅原神风格
+- **Cyberpunk 2077** - 霓虹赛博朋克，未来科技感
+- 运行时一键切换主题
 
-| 版本 | UI 框架 | 风格 | 推荐场景 |
-|------|---------|------|----------|
-| **Tkinter 版** | Tkinter | 简洁实用 | 快速启动、低内存 |
-| **PyQt6 版** 🎮 | PyQt6 | **原神风格** | 精美界面、专业体验 |
+### 🏗️ 模块化架构
+- 完全重构的 UI 组件系统
+- 清晰的代码结构，易于维护和扩展
+- 核心功能与 UI 完全解耦
 
-### 🎨 PyQt6 原神风格版本特色
-
-- ✨ 金色原神主题设计
-- 🎯 自定义标题栏（可拖动）
-- 💫 渐变按钮与平滑动画
-- 🌟 Font Awesome 图标
-- 📱 完美高 DPI 支持
-
-**快速启动 PyQt6 版本：**
-```bash
-./run_pyqt6.sh      # Linux/macOS
-run_pyqt6.bat       # Windows
-```
-
-**详细文档：** [PyQt6 Genshin Style Guide](docs/PYQT6_GENSHIN_STYLE.md)
+### ⚡ 性能优化
+- **快速启动**: onedir 模式，<1秒启动
+- 延迟加载图层图片
+- 系统字体扫描缓存
 
 ---
 
-## ✨ 功能亮点
+## ✨ 核心功能
 
 🎨 **多图层系统** - 支持无限制添加水印图层，自由组合
 🌈 **混合模式** - 4种专业 Photoshop 混合模式（Normal/Overlay/Screen/Soft Light）
-👁️ **图层可见性** - 一键隐藏/显示图层，无需删除（类似 Photoshop）
+👁️ **图层可见性** - 一键隐藏/显示图层（类似 Photoshop）
 🎚️ **精细控制** - 每层独立调整不透明度和混合效果
-🔤 **文本标注** - 自动添加序号或文件名，智能对比色
-🎨 **系统字体** - 自动扫描系统字体，像 Photoshop 一样选择字体
-📏 **百分比字体** - 字体大小基于图片高度，多分辨率一致
-⚡ **高性能** - 优化算法，快速处理大图片
+🎭 **多主题** - Genshin Impact / Cyberpunk 2077 主题
 💾 **自动保存** - 图层配置自动保存，下次启动恢复
+⚡ **高性能** - 优化算法，快速处理大图片
 
 ---
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 方式一：运行源码
 
 ```bash
-pip install -r requirements.txt
+# 安装依赖
+pip install -r requirements_pyqt6.txt
+
+# 启动应用
+python src/watermark_app_pyqt6_modular.py
 ```
 
-### 启动应用
-
-**Windows 用户**
-```bash
-run_multilayer.bat
+或使用快捷脚本：
+```cmd
+run_pyqt6.bat        # Windows
 ```
 
-**macOS/Linux 用户**
-```bash
-chmod +x run_multilayer.sh
-./run_multilayer.sh
+### 方式二：构建可执行文件
+
+```cmd
+# 一键构建
+tools\build_pyqt6_modular.bat
+
+# 运行生成的 exe
+dist\WatermarkApp_PyQt6_v2.0\WatermarkApp_PyQt6_v2.0.exe
 ```
 
-**或直接运行**
-```bash
-python src/watermark_app_multilayer.py
-```
+详见: [BUILD.md](BUILD.md)
 
 ---
 
-## 📖 使用流程
+## 📖 使用指南
 
 ### 1️⃣ 上传图片
-点击 `Upload Images` 选择待处理的图片
+点击 `📂 Upload Images` 选择待处理的图片
 
 ### 2️⃣ 添加水印图层
-- 点击 `+ Add Layer` 选择水印
+- 点击 `➕ Add Layer` 选择水印
 - 设置**混合模式**（Normal/Overlay/Screen/Soft Light）
 - 调整**不透明度**（0-100%）
+- 切换图层可见性 👁️
 
-### 3️⃣ 文本标注（可选）✨ NEW
-- 勾选 `Enable text label`
-- 选择标注类型：
-  - **Number**: 显示序号（1, 2, 3...）
-  - **Filename**: 显示文件名
-- 选择系统字体（自动扫描已安装字体）
-- 调整字体大小（百分比，相对于图片高度）
-- 标注自动显示在图片右上角
-- 智能对比色：深色背景显示白字，浅色背景显示黑字
+### 3️⃣ 应用水印
+点击 `🎨 Apply Watermark` 批量处理图片
 
-### 4️⃣ 管理图层
-- **编辑**: 选中图层，调整属性
-- **隐藏/显示**: 选中图层 → `👁️ Toggle` （类似 Photoshop）
-- **删除**: 选中图层 → `× Remove`
-- **排序**: `↑ Up` / `↓ Down`
-
-### 5️⃣ 应用水印
-点击 `🚀 Apply Multi-Layer Watermark` 完成处理
-
----
-
-## 🎨 混合模式说明
-
-| 模式 | 用途 | 推荐不透明度 |
-|------|------|-------------|
-| **Normal** | Logo、文字水印 | 80-100% |
-| **Screen** | 光效、高光效果 | 30-60% |
-| **Overlay** | 纹理、图案叠加 | 30-70% |
-| **Soft Light** | 柔和艺术效果 | 40-80% |
-
----
-
-## 💡 实用案例
-
-### 📌 品牌水印 + 序号
-```
-图层设置:
-[1] logo.png (Normal, 100%)
-[2] brandname.png (Normal, 80%)
-
-文本标注: 启用，类型=Number
-结果: 每张图右上角显示 1, 2, 3...
-```
-
-### ✨ 光效水印 + 文件名
-```
-图层设置:
-[1] watermark.png (Normal, 70%)
-[2] glow.png (Screen, 50%)
-
-文本标注: 启用，类型=Filename
-结果: 每张图右上角显示文件名
-```
-
-### 🎭 复古效果
-```
-[1] texture.png (Overlay, 40%)
-[2] vignette.png (Soft Light, 60%)
-```
-
-### 🌐 多语言水印
-```
-[1] watermark_cn.png (Normal, 100%)
-[2] watermark_en.png (Normal, 80%)
-```
-
----
-
-## 📚 详细文档
-
-| 文档 | 说明 |
-|------|------|
-| [快速开始](docs/QUICK_START.md) | 5分钟上手指南 |
-| [完整手册](docs/MULTILAYER_GUIDE.md) | 详细功能说明 |
-| [发布说明](docs/VERSION_1.5_RELEASE_NOTES.md) | 版本更新内容 |
-| [性能分析](performance_analysis.md) | 性能瓶颈详解 ✨ NEW |
-| [开发总结](docs/DEVELOPMENT_SUMMARY_V1.5.md) | 技术实现细节 |
-| [项目结构](docs/PROJECT_STRUCTURE.md) | 目录组织说明 |
-
----
-
-## 🆚 版本历史
-
-| 版本 | 主要功能 | 状态 |
-|------|---------|------|
-| **v1.6.2** | 图层可见性 + 系统字体 + 百分比字体 | ⭐ 当前版本 |
-| v1.6.0 | 多图层 + 文本标注 + 性能优化 | 可用 |
-| v1.5 | 多图层 + 混合模式 | 可用 |
-| v1.4 | 智能颜色 + 性能优化 | 已废弃 |
-| v1.3 | 基础智能颜色 | 已废弃 |
-| v1.2 | 基础水印功能 | 已归档 |
-
-### v1.6.2 新特性 ✨
-
-- 👁️ **图层可见性切换**: 类似 Photoshop 的眼睛图标，一键隐藏/显示图层
-- 🎨 **系统字体选择**: 自动扫描系统已安装字体，下拉菜单选择（像 Photoshop）
-- 📏 **百分比字体大小**: 字体大小基于图片高度百分比（3% = 1080p 时 32px，4K 时 64px）
-- 🔄 **向后兼容**: 自动转换旧配置文件中的像素值为百分比
-
-### v1.6.0 核心功能
-
-- 🔤 **文本标注模块**: 独立的 `text_label_module.py`
-- ⚡ **性能优化**: BILINEAR 缩放，提速 1.6-1.9x
-- 📊 **性能分析**: 详细的瓶颈分析和优化建议
-- 🧹 **代码重构**: 模块化设计，易于扩展
-
-查看完整 [版本历史](docs/VERSION_HISTORY.md)
-
----
-
-## 💻 系统要求
-
-- **Python**: 3.7 或更高版本
-- **内存**: 最低 2GB，推荐 4GB+
-- **系统**: Windows 7+, macOS 10.12+, Linux
-
-### 依赖库
-```
-Pillow >= 8.0.0
-numpy >= 1.20.0
-```
+### 4️⃣ 切换主题 🎨
+在设置面板选择主题：
+- Genshin Impact（默认）
+- Cyberpunk 2077
 
 ---
 
@@ -215,110 +96,134 @@ numpy >= 1.20.0
 
 ```
 watermarkApp/
-├── src/                              # 源代码
-│   ├── watermark_app_multilayer.py   # v1.6 主程序
-│   └── text_label_module.py          # 文本标注模块 ✨ NEW
-├── configs/                          # 配置文件
-├── docs/                             # 完整文档
-├── tests/                            # 测试文件
-├── archive/                          # 归档版本
-├── performance_analysis.md           # 性能分析 ✨ NEW
-├── test_performance.py               # 性能测试 ✨ NEW
-├── run_multilayer.bat                # Windows 启动
-├── run_multilayer.sh                 # Linux/Mac 启动
-└── README.md                         # 本文档
+├── src/
+│   ├── watermark_app_pyqt6_modular.py  # 主入口
+│   ├── watermark_core.py               # 核心水印引擎
+│   └── ui/                              # UI 模块化组件
+│       ├── main_window.py               # 主窗口
+│       ├── components/                  # UI 组件
+│       │   ├── title_bar.py            # 自定义标题栏
+│       │   └── message_box.py          # 消息框
+│       ├── panels/                      # 功能面板
+│       │   ├── upload_panel.py         # 上传面板
+│       │   ├── layer_panel.py          # 图层面板
+│       │   ├── output_panel.py         # 输出面板
+│       │   └── settings_panel.py       # 设置面板
+│       └── styles/                      # 主题系统
+│           ├── theme_base.py           # 主题基类
+│           ├── theme_genshin.py        # 原神主题
+│           └── theme_cyberpunk.py      # 赛博朋克主题
+├── assets/
+│   └── ui/
+│       ├── genshin/                     # 原神主题资源
+│       └── cyberpunk/                   # 赛博朋克主题资源
+├── configs/
+│   └── multilayer_watermark_config.json # 配置文件
+├── tools/
+│   └── build_pyqt6_modular.bat         # 构建脚本
+└── docs/
+    ├── ARCHITECTURE.md                  # 架构文档
+    ├── PYQT6_MODULAR_COMPLETION_GUIDE.md
+    ├── STARTUP_PERFORMANCE_ANALYSIS.md
+    └── THEME_SWITCHING_GUIDE.md
 ```
 
 ---
 
-## ⚡ 性能指标
+## 🎨 主题预览
 
-### v1.6 处理速度（基于实测）
+### Genshin Impact 主题
+- 🌟 温暖金色调 (#D3BC8E)
+- 📜 米黄色背景 (#ECE5D8)
+- 🎯 优雅按钮渐变
 
-测试条件: 3个水印图层，Normal 混合模式
-
-| 图片尺寸 | v1.5 时间 | v1.6 时间 | 提速 |
-|---------|----------|----------|------|
-| 1920×1080 (2.1M) | ~0.7秒 | ~0.4秒 | **43%** ⬆️ |
-| 2560×1440 (3.7M) | ~1.3秒 | ~0.8秒 | **38%** ⬆️ |
-| 3840×2160 (8.3M) | ~3.2秒 | ~1.64秒 | **49%** ⬆️ |
-
-💡 **优化亮点**:
-- **uint8 直接计算**：Normal 模式避免 float32 转换（2x 快）
-- **BILINEAR 缩放**：替代 LANCZOS 算法（1.6-1.9x 快）
-- **综合提速 1.95x**：4K 图片从 3.2s 降至 1.64s
-- 详见 [性能分析文档](performance_analysis.md)
+### Cyberpunk 2077 主题
+- ⚡ 霓虹青色 (#00F0FF)
+- 🔮 洋红色点缀 (#FF2A6D)
+- 🌃 深色未来感背景
 
 ---
 
-## 🎯 核心优势
+## 🛠️ 技术栈
 
-✅ **专业级混合** - 完整 Photoshop 标准算法
-✅ **多层叠加** - 无限创意可能
-✅ **文本标注** - 序号/文件名自动添加 ✨ NEW
-✅ **简单易用** - 友好的图形界面
-✅ **高效处理** - 批量处理支持
-✅ **配置记忆** - 自动保存设置
-
----
-
-## 📞 获取帮助
-
-### 遇到问题？
-
-1. 查看 [快速开始指南](docs/QUICK_START.md)
-2. 阅读 [完整使用手册](docs/MULTILAYER_GUIDE.md)
-3. 检查 [常见问题](docs/MULTILAYER_GUIDE.md#常见问题)
-4. 查看 [性能分析](performance_analysis.md)（新增）
-
-### 技术支持
-
-- 📖 查看文档: [docs/](docs/)
-- 🐛 报告问题: 提交 Issue
-- 💡 功能建议: 提交 Feature Request
+- **Python 3.7+**
+- **PyQt6** - 现代化 GUI 框架
+- **Pillow** - 图像处理
+- **NumPy** - 高性能数值计算
+- **PyInstaller** - 打包为可执行文件
 
 ---
 
-## 🔬 性能测试
+## 📊 性能对比
 
-运行性能测试脚本查看不同分辨率的处理时间：
+### 启动速度
 
-```bash
-python test_performance.py
-```
+| 构建模式 | 启动时间 | 体积 |
+|----------|---------|------|
+| **onedir** ✅ | **0.5-1秒** | ~200MB |
+| onefile | 5-7秒 | ~50MB |
 
-测试内容：
-- 内存分配时间
-- 混合模式计算时间
-- 图片缩放对比（LANCZOS vs BILINEAR）
-- 完整流程模拟
+推荐使用 onedir 模式获得最佳启动体验！
 
 ---
 
-## 🙏 致谢
+## 📚 文档
 
-感谢以下开源项目:
-- [Pillow](https://python-pillow.org/) - 强大的图像处理库
-- [NumPy](https://numpy.org/) - 高性能科学计算库
+- [BUILD.md](BUILD.md) - 构建指南
+- [CLAUDE.md](CLAUDE.md) - AI 上下文文档
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - 架构说明
+- [docs/PYQT6_MODULAR_COMPLETION_GUIDE.md](docs/PYQT6_MODULAR_COMPLETION_GUIDE.md) - 模块化完整指南
+- [docs/STARTUP_PERFORMANCE_ANALYSIS.md](docs/STARTUP_PERFORMANCE_ANALYSIS.md) - 性能分析
+- [docs/THEME_SWITCHING_GUIDE.md](docs/THEME_SWITCHING_GUIDE.md) - 主题切换指南
 
-感谢所有用户的支持和反馈！
+---
+
+## 📜 历史版本
+
+### v2.0 (2025-11) - PyQt6 模块化重构
+- 🏗️ 完全模块化架构
+- 🎨 多主题支持（Genshin/Cyberpunk）
+- ⚡ 性能优化（<1秒启动）
+- 🎯 UI/核心分离
+
+### v1.6.2 (2025-06) - Tkinter 版本
+- 👁️ 图层可见性切换
+- 🎨 系统字体选择
+- 📏 百分比字体大小
+- 🔤 文本标注模块
+
+详见: [versions/](versions/) 目录
+
+---
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
 
 ---
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+MIT License - 自由使用、修改和分发
 
 ---
 
-## 🎨 开始创作
+## 🎓 开发指南
 
-**Multi-Layer Watermark App v1.6.2** - 让每张图片都独一无二！
+### 添加新主题
 
-*现在就开始创作你的专属水印吧！* ✨
+1. 在 `src/ui/styles/` 创建新主题类（继承 `Theme`）
+2. 在 `assets/ui/` 创建主题资源目录
+3. 在 `ThemeManager` 中注册主题
+
+详见: [docs/THEME_SWITCHING_GUIDE.md](docs/THEME_SWITCHING_GUIDE.md)
+
+### 添加新功能面板
+
+1. 在 `src/ui/panels/` 创建面板类
+2. 在 `main_window.py` 中添加到布局
+3. 使用 `ThemeManager.current_theme()` 获取主题样式
 
 ---
 
-<p align="center">
-  <strong>Made with ❤️ by WatermarkApp Team</strong>
-</p>
+**⭐ 如果这个项目对你有帮助，请给个 Star！**

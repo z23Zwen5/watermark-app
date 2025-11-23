@@ -164,9 +164,18 @@ class Theme(ABC):
     # === 资源路径 ===
     def get_asset_path(self, filename: str) -> str:
         """获取主题资源文件路径"""
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
-        assets_dir = os.path.join(project_root, "assets", "ui", self.name)
+        import sys
+
+        # PyInstaller 打包后的路径处理
+        if getattr(sys, 'frozen', False):
+            # 运行在打包后的 exe 中
+            base_path = sys._MEIPASS
+        else:
+            # 运行在开发环境中
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+
+        assets_dir = os.path.join(base_path, "assets", "ui", self.name)
         return os.path.join(assets_dir, filename).replace("\\", "/")
 
     @property
