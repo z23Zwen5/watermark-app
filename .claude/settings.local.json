@@ -14,7 +14,9 @@
       "Bash(pyinstaller:*)",
       "Bash(zip:*)",
       "Bash(unzip:*)",
-      "Bash(tar:*)"
+      "Bash(tar:*)",
+      "Bash(test:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []
