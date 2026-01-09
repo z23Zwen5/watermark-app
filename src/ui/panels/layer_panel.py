@@ -194,7 +194,7 @@ class LayerPanel(QWidget):
     def _on_layer_select(self):
         """图层选中事件"""
         idx = self.layer_list.currentRow()
-        if idx == -1:
+        if idx == -1 or idx >= len(self.watermark_layers):
             self.prop_frame.setEnabled(False)
             self.current_layer_index = None
             return
