@@ -7,30 +7,29 @@
 
 ## 📌 项目概述
 
-**Multi-Layer Watermark App v1.6.2** - 基于 Python + Tkinter 的专业多图层水印应用
+**Multi-Layer Watermark App v2.1** - 基于 Python + PyQt6 的专业多图层水印应用（模块化架构）
 
 ### 核心特性
 - 🎨 多图层水印系统
 - 🌈 4种 Photoshop 混合模式（Normal/Overlay/Screen/Soft Light）
 - 👁️ 图层可见性切换（类似 Photoshop）
+- 📐 **输出缩放** - 等比缩放到指定高度（256-4096 px）
 - 🔤 文本标注（序号/文件名，智能对比色）
 - 🎨 系统字体选择（自动扫描已安装字体）
-- 📏 百分比字体大小（多分辨率一致）
+- 🎭 多主题支持（Genshin Impact / Cyberpunk 2077）
 - ⚡ 高性能处理（NumPy 向量化 + uint8 优化）
 - 💾 配置自动保存/加载
 
-### v1.6.2 更新
-- 👁️ **图层可见性**: 类似 Photoshop 眼睛图标，隐藏/显示图层
-- 🎨 **系统字体**: 自动扫描 Windows/macOS/Linux 字体，下拉选择
-- 📏 **百分比字体**: 字体大小基于图片高度（3% = 1080p:32px, 4K:64px）
-- 🔄 **向后兼容**: 自动转换旧配置像素值为百分比
+### v2.1 更新 (2025-01)
+- 📐 **输出缩放**: 等比缩放输出图片到指定高度（可开关，默认 1024 px）
+- 🔧 **Bug 修复**: 修复图层面板索引越界错误
+- 🎨 **UI 优化**: SpinBox 字体显示修复
 
-### v1.6.0 核心功能
-- ✨ 新增文本标注模块（独立 `text_label_module.py`）
-- ⚡ uint8 优化：Normal 模式提速 2x
-- ⚡ BILINEAR 缩放：比 LANCZOS 快 1.6-1.9x
-- 📊 性能提升：**4K图片处理快 1.95x**（3.2s → 1.64s）
-- 📄 新增 `performance_analysis.md` 和 `test_performance.py`
+### v2.0 PyQt6 模块化架构
+- 🏗️ 完全模块化 UI 架构
+- 🎨 多主题系统（Genshin/Cyberpunk）
+- ⚡ 快速启动（onedir 模式 <1秒）
+- 🎯 UI/核心完全分离
 
 ---
 
@@ -39,26 +38,47 @@
 ```
 watermarkApp/
 ├── src/
-│   ├── watermark_app_multilayer.py    # 主程序 (948行)
-│   └── text_label_module.py           # 文本标注模块 (320行)
+│   ├── watermark_app_pyqt6_modular.py  # 主入口
+│   ├── watermark_core.py               # 核心水印引擎 + 配置管理
+│   ├── text_label_module.py            # 文本标注模块
+│   └── ui/                             # UI 模块化组件
+│       ├── main_window.py              # 主窗口
+│       ├── components/                 # UI 组件
+│       │   ├── title_bar.py            # 自定义标题栏
+│       │   └── message_box.py          # 消息框
+│       ├── panels/                     # 功能面板
+│       │   ├── upload_panel.py         # 上传面板
+│       │   ├── layer_panel.py          # 图层面板
+│       │   ├── output_panel.py         # 输出面板
+│       │   ├── settings_panel.py       # 设置面板（含输出缩放）
+│       │   └── text_label_panel.py     # 文本标注面板
+│       └── styles/                     # 主题系统
+│           ├── theme_base.py           # 主题基类 + 管理器
+│           ├── theme_genshin.py        # 原神主题
+│           └── theme_cyberpunk.py      # 赛博朋克主题
+├── assets/
+│   ├── watermark_app_icon.ico          # 应用图标
+│   └── ui/                             # 主题资源
 ├── configs/
 │   └── multilayer_watermark_config.json
-├── performance_analysis.md            # 性能分析文档
-├── test_performance.py                # 性能测试脚本
-├── requirements.txt                   # Pillow, numpy
-└── run_multilayer.{bat,sh}            # 启动脚本
+├── tools/
+│   └── build_pyqt6_modular.bat         # 构建脚本
+└── requirements_pyqt6.txt              # PyQt6, Pillow, numpy
 ```
 
 ---
 
 ## 🔧 技术栈
 
-- **Python 3.7+** + tkinter + Pillow + NumPy
+- **Python 3.10+** + PyQt6 + Pillow + NumPy
+- **UI 框架**：PyQt6 模块化架构
 - **混合模式算法**：Photoshop 标准（Normal/Screen/Overlay/Soft Light）
+- **输出缩放**：LANCZOS 高质量缩放算法
 - **性能优化**：
   - NumPy 向量化（避免逐像素循环）
   - uint8 直接计算（Normal 模式，避免 float32 转换）
-  - BILINEAR 缩放（替代 LANCZOS）
+  - BILINEAR 缩放（水印处理）
+  - 延迟加载图层图片
 
 ---
 
@@ -137,6 +157,12 @@ get_system_fonts()     # 获取缓存的字体映射 {name: path}
 `configs/multilayer_watermark_config.json`:
 ```json
 {
+  "last_used_directory": "...",
+  "save_directory": "...",
+  "last_stretch": false,
+  "ui_theme": "genshin",
+  "output_resize_enabled": false,
+  "output_resize_height": 1024,
   "layers": [
     {"path": "水印路径", "opacity": 100, "blend_mode": "normal", "visible": true}
   ],
@@ -325,6 +351,6 @@ def create_text_label_section(self, parent):
 
 ---
 
-*最后更新: 2025-11-20*
-*版本: v1.6.2*
-*总行数: 320 行*
+*最后更新: 2025-01-10*
+*版本: v2.1*
+*架构: PyQt6 模块化*

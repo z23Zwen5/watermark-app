@@ -199,6 +199,8 @@ class WatermarkConfig:
         self.last_stretch = False
         self.last_images_files = []
         self.ui_theme = 'genshin'  # UI 主题 (genshin/cyberpunk)
+        self.output_resize_enabled = False  # 输出缩放开关
+        self.output_resize_height = 1024    # 输出缩放目标高度
         self.layers = []
         self.text_label_config = TextLabelConfig()
 
@@ -216,6 +218,8 @@ class WatermarkConfig:
                     self.last_stretch = config.get('last_stretch', False)
                     self.last_images_files = config.get('last_images_files', [])
                     self.ui_theme = config.get('ui_theme', 'genshin')
+                    self.output_resize_enabled = config.get('output_resize_enabled', False)
+                    self.output_resize_height = config.get('output_resize_height', 1024)
 
                     # 加载图层
                     self.layers = []
@@ -235,16 +239,24 @@ class WatermarkConfig:
             print(f"✕ Error loading config: {e}")
             return False
 
-    def save(self, layers, text_label_config, stretch=False):
+    def save(self, layers, text_label_config, stretch=False, resize_enabled=None, resize_height=None):
         """保存配置
 
         Args:
             layers: WatermarkLayer 列表
             text_label_config: TextLabelConfig 对象
             stretch: 是否拉伸
+            resize_enabled: 是否启用输出缩放 (None 表示使用当前值)
+            resize_height: 输出缩放目标高度 (None 表示使用当前值)
         """
         try:
             layers_info = [layer.to_dict() for layer in layers]
+
+            # 更新缩放配置（如果提供了新值）
+            if resize_enabled is not None:
+                self.output_resize_enabled = resize_enabled
+            if resize_height is not None:
+                self.output_resize_height = resize_height
 
             config = {
                 'last_used_directory': self.last_used_directory,
@@ -254,6 +266,8 @@ class WatermarkConfig:
                 'last_stretch': stretch,
                 'last_images_files': self.last_images_files,
                 'ui_theme': self.ui_theme,
+                'output_resize_enabled': self.output_resize_enabled,
+                'output_resize_height': self.output_resize_height,
                 'layers': layers_info,
                 'text_label': text_label_config.to_dict()
             }
@@ -273,6 +287,7 @@ class BatchProcessor:
     @staticmethod
     def process_images(images, image_paths, layers, text_label_config,
                       save_directory, stretch=False,
+                      resize_enabled=False, resize_height=1024,
                       progress_callback=None, status_callback=None):
         """批量处理图片
 
@@ -283,6 +298,8 @@ class BatchProcessor:
             text_label_config: TextLabelConfig 对象
             save_directory: 保存目录
             stretch: 是否拉伸
+            resize_enabled: 是否启用输出缩放
+            resize_height: 输出缩放目标高度
             progress_callback: 进度回调 func(percentage)
             status_callback: 状态回调 func(message)
 
@@ -315,6 +332,12 @@ class BatchProcessor:
                     rgb_image = Image.new('RGB', output.size, (255, 255, 255))
                     rgb_image.paste(output, mask=output.split()[3])
                     output = rgb_image
+
+                # 输出缩放（等比缩放到目标高度）
+                if resize_enabled and resize_height > 0 and output.height != resize_height:
+                    ratio = resize_height / output.height
+                    new_width = int(output.width * ratio)
+                    output = output.resize((new_width, resize_height), Image.Resampling.LANCZOS)
 
                 # 保存文件
                 filename_without_ext = os.path.splitext(filename)[0]

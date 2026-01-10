@@ -176,6 +176,7 @@ class MainWindow(QMainWindow):
         # 设置面板
         self.settings_panel.stretch_changed.connect(self._on_stretch_changed)
         self.settings_panel.theme_changed.connect(self._on_theme_changed)
+        self.settings_panel.resize_changed.connect(self._on_resize_changed)
 
         # 文本标注面板
         self.text_label_panel.config_changed.connect(self._on_text_label_changed)
@@ -199,6 +200,10 @@ class MainWindow(QMainWindow):
 
         # 设置其他配置
         self.settings_panel.set_stretch(self.config.last_stretch)
+        self.settings_panel.set_resize(
+            self.config.output_resize_enabled,
+            self.config.output_resize_height
+        )
 
         # 设置主题选择器
         if hasattr(self.config, 'ui_theme'):
@@ -232,6 +237,12 @@ class MainWindow(QMainWindow):
     def _on_stretch_changed(self, value):
         """拉伸设置改变"""
         self.config.last_stretch = value
+        self._save_config()
+
+    def _on_resize_changed(self, enabled, height):
+        """输出缩放设置改变"""
+        self.config.output_resize_enabled = enabled
+        self.config.output_resize_height = height
         self._save_config()
 
     def _on_theme_changed(self, theme_name):
@@ -269,10 +280,13 @@ class MainWindow(QMainWindow):
 
     def _save_config(self):
         """保存配置"""
+        resize_enabled, resize_height = self.settings_panel.get_resize()
         self.config.save(
             self.layer_panel.get_layers(),
             self.config.text_label_config,
-            self.settings_panel.get_stretch()
+            self.settings_panel.get_stretch(),
+            resize_enabled,
+            resize_height
         )
 
     def _start_processing(self):
@@ -322,6 +336,7 @@ class MainWindow(QMainWindow):
     def _run_process(self):
         """运行处理（在线程中）"""
         save_dir = self.config.save_directory or self.config.last_images_directory
+        resize_enabled, resize_height = self.settings_panel.get_resize()
 
         success, msg = BatchProcessor.process_images(
             self.images,
@@ -330,6 +345,8 @@ class MainWindow(QMainWindow):
             self.config.text_label_config,
             save_dir,
             self.settings_panel.get_stretch(),
+            resize_enabled,
+            resize_height,
             lambda p: self.progress_update_signal.emit(p),
             lambda s: self.status_update_signal.emit(s)
         )

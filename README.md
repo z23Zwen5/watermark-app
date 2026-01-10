@@ -2,14 +2,20 @@
 
 > 专业多图层水印应用 | PyQt6 模块化架构 | 多主题支持
 
-[![Version](https://img.shields.io/badge/version-2.0-blue.svg)](CLAUDE.md)
+[![Version](https://img.shields.io/badge/version-2.1-blue.svg)](CLAUDE.md)
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
 [![PyQt6](https://img.shields.io/badge/PyQt6-6.0+-orange.svg)](https://www.riverbankcomputing.com/software/pyqt/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
-## 🌟 v2.0 新特性
+## 🌟 v2.1 新特性
+
+### 📐 输出缩放功能 (NEW!)
+- **等比缩放** - 输出图片自动缩放到指定高度
+- **可调节** - 高度范围 256-4096 px，默认 1024 px
+- **可开关** - 不需要时可关闭，保持原始尺寸
+- **高质量** - 使用 LANCZOS 算法保证缩放质量
 
 ### 🎨 多主题支持
 - **Genshin Impact** - 温暖金色调，优雅原神风格
@@ -34,6 +40,7 @@
 🌈 **混合模式** - 4种专业 Photoshop 混合模式（Normal/Overlay/Screen/Soft Light）
 👁️ **图层可见性** - 一键隐藏/显示图层（类似 Photoshop）
 🎚️ **精细控制** - 每层独立调整不透明度和混合效果
+📐 **输出缩放** - 等比缩放输出图片到指定高度（可选）
 🎭 **多主题** - Genshin Impact / Cyberpunk 2077 主题
 💾 **自动保存** - 图层配置自动保存，下次启动恢复
 ⚡ **高性能** - 优化算法，快速处理大图片
@@ -179,6 +186,11 @@ watermarkApp/
 ---
 
 ## 📜 历史版本
+
+### v2.1 (2025-01) - 输出缩放功能
+- 📐 新增输出缩放功能（等比缩放到指定高度）
+- 🔧 修复图层面板索引越界 bug
+- 🎨 UI 细节优化
 
 ### v2.0 (2025-11) - PyQt6 模块化重构
 - 🏗️ 完全模块化架构

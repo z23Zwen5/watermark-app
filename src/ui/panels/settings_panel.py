@@ -4,8 +4,8 @@
 Settings Panel - General Application Settings
 设置面板
 """
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QComboBox, QLabel, QGroupBox
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QComboBox, QLabel, QGroupBox, QSpinBox
+from PyQt6.QtCore import Qt, pyqtSignal, QLocale
 from ..styles.theme_base import ThemeManager
 
 
@@ -15,11 +15,14 @@ class SettingsPanel(QWidget):
     # 信号
     stretch_changed = pyqtSignal(bool)
     theme_changed = pyqtSignal(str)  # 主题名称
+    resize_changed = pyqtSignal(bool, int)  # (enabled, height)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.stretch_var = False
         self.current_theme = 'genshin'  # 默认主题
+        self.resize_enabled = False
+        self.resize_height = 1024
         self._create_ui()
 
     def _create_ui(self):
@@ -70,10 +73,47 @@ class SettingsPanel(QWidget):
 
         vbox.addWidget(self.chk_stretch)
 
+        # 输出缩放选项
+        resize_row = QHBoxLayout()
+
+        self.chk_resize = QCheckBox("Resize output to height:")
+        self.chk_resize.setChecked(False)
+        self.chk_resize.stateChanged.connect(self._on_resize_change)
+
+        self.spin_resize_height = QSpinBox()
+        self.spin_resize_height.setRange(256, 4096)
+        self.spin_resize_height.setValue(1024)
+        self.spin_resize_height.setLocale(QLocale("en_US"))
+        self.spin_resize_height.setSuffix(" px")
+        self.spin_resize_height.setMinimumWidth(100)
+        # 使用标准字体显示数字，避免主题字体的特殊数字样式
+        self.spin_resize_height.setStyleSheet(
+            "QSpinBox, QSpinBox QLineEdit { font-family: 'Segoe UI', 'Microsoft YaHei UI', sans-serif; }"
+        )
+        self.spin_resize_height.setEnabled(False)  # 默认禁用
+        self.spin_resize_height.valueChanged.connect(self._on_resize_height_change)
+
+        resize_row.addWidget(self.chk_resize)
+        resize_row.addWidget(self.spin_resize_height)
+        resize_row.addStretch()
+        vbox.addLayout(resize_row)
+
     def _on_stretch_change(self, state):
         """拉伸选项改变"""
         self.stretch_var = (state == Qt.CheckState.Checked.value)
         self.stretch_changed.emit(self.stretch_var)
+
+    def _on_resize_change(self, state):
+        """缩放选项改变"""
+        self.resize_enabled = (state == Qt.CheckState.Checked.value)
+        self.spin_resize_height.setEnabled(self.resize_enabled)
+        self.resize_changed.emit(self.resize_enabled, self.spin_resize_height.value())
+
+    def _on_resize_height_change(self, value):
+        """缩放高度改变"""
+        self.resize_height = value
+        if self.resize_enabled:
+            self.resize_changed.emit(True, value)
 
     def _on_theme_change(self, index):
         """主题改变"""
@@ -102,3 +142,15 @@ class SettingsPanel(QWidget):
     def get_theme(self):
         """获取当前主题"""
         return self.current_theme
+
+    def set_resize(self, enabled, height=1024):
+        """设置缩放选项"""
+        self.resize_enabled = enabled
+        self.resize_height = height
+        self.chk_resize.setChecked(enabled)
+        self.spin_resize_height.setValue(height)
+        self.spin_resize_height.setEnabled(enabled)
+
+    def get_resize(self):
+        """获取缩放选项"""
+        return self.resize_enabled, self.resize_height

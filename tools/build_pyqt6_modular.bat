@@ -1,13 +1,13 @@
 @echo off
 REM Multi-Layer Watermark App - PyQt6 模块化版本构建脚本
-REM 版本: v2.0 (Modular Architecture)
+REM 版本: v2.1 (Modular Architecture + Output Resize)
 REM 优化模式: onedir (快速启动 <1秒)
 
 setlocal enabledelayedexpansion
 
 echo ========================================
 echo   WatermarkApp PyQt6 Build Script
-echo   Version: v2.0 (Modular)
+echo   Version: v2.1 (Modular)
 echo   Mode: onedir (Fast Startup)
 echo ========================================
 echo.
@@ -18,7 +18,7 @@ set "BUILD_DIR=%PROJECT_ROOT%\build"
 set "DIST_DIR=%PROJECT_ROOT%\dist"
 set "SRC_FILE=%PROJECT_ROOT%\src\watermark_app_pyqt6_modular.py"
 set "ICON_FILE=%PROJECT_ROOT%\assets\watermark_app_icon.ico"
-set "APP_NAME=WatermarkApp_PyQt6_v2.0"
+set "APP_NAME=WatermarkApp_PyQt6_v2.1"
 
 echo [1/7] 检查 Python 环境...
 python --version >nul 2>&1
