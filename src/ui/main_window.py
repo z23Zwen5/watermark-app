@@ -8,21 +8,24 @@ import time
 import threading
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QScrollArea
+    QScrollArea, QStackedWidget, QPushButton
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint, QByteArray
+import ctypes, ctypes.wintypes, struct
 
 from watermark_core import WatermarkConfig, BatchProcessor
 from .styles.theme_base import ThemeManager
 from .components import CustomTitleBar, GenshinMessageBox
 from .panels import (
     UploadPanel, LayerPanel, SettingsPanel,
-    TextLabelPanel, OutputPanel
+    TextLabelPanel, OutputPanel, RenamePanel
 )
 
 
 class MainWindow(QMainWindow):
     """主窗口 - 协调所有UI组件"""
+
+    _RESIZE_MARGIN = 6  # 边缘拖拽热区宽度（像素）
 
     # 处理信号
     progress_update_signal = pyqtSignal(int)
@@ -106,8 +109,66 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.title_bar)
         print(f"    ⏱️  标题栏: {(time.time() - t0)*1000:.0f}ms")
 
-        # 创建滚动区域
+        # 模式切换栏
         t0 = time.time()
+        self._mode_switcher_bar = self._create_mode_switcher()
+        main_layout.addWidget(self._mode_switcher_bar)
+        print(f"    ⏱️  模式切换栏: {(time.time() - t0)*1000:.0f}ms")
+
+        # 内容区（QStackedWidget）
+        t0 = time.time()
+        self._content_stack = QStackedWidget()
+        main_layout.addWidget(self._content_stack)
+        print(f"    ⏱️  内容堆栈: {(time.time() - t0)*1000:.0f}ms")
+
+        # Page 0: 水印模式（原有内容）
+        t0 = time.time()
+        watermark_page = self._create_watermark_page()
+        self._content_stack.addWidget(watermark_page)
+        print(f"    ⏱️  水印页面: {(time.time() - t0)*1000:.0f}ms")
+
+        # Page 1: AI 命名模式
+        t0 = time.time()
+        self.rename_panel = RenamePanel(self.config)
+        self._content_stack.addWidget(self.rename_panel)
+        print(f"    ⏱️  命名面板: {(time.time() - t0)*1000:.0f}ms")
+
+    def _create_mode_switcher(self) -> QWidget:
+        """创建模式切换 Tab 栏"""
+        theme = ThemeManager.get_theme()
+        bar = QWidget()
+        bar.setObjectName("ModeSwitcherBar")
+        bar.setFixedHeight(36)
+        bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(15, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self.btn_mode_watermark = QPushButton("Watermark")
+        self.btn_mode_watermark.setObjectName("ModeBtnActive")
+        self.btn_mode_watermark.setFixedHeight(36)
+        self.btn_mode_watermark.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_mode_watermark.clicked.connect(lambda: self._switch_mode(0))
+
+        self.btn_mode_rename = QPushButton("AI Rename")
+        self.btn_mode_rename.setObjectName("ModeBtnInactive")
+        self.btn_mode_rename.setFixedHeight(36)
+        self.btn_mode_rename.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_mode_rename.clicked.connect(lambda: self._switch_mode(1))
+
+        layout.addWidget(self.btn_mode_watermark)
+        layout.addWidget(self.btn_mode_rename)
+        layout.addStretch()
+
+        ss = theme.get_mode_switcher_stylesheet()
+        self.btn_mode_watermark.setStyleSheet(ss)
+        self.btn_mode_rename.setStyleSheet(ss)
+        bar.setStyleSheet(f"QWidget#ModeSwitcherBar {{ background-color: {theme.bg_dark}; border-bottom: 1px solid {theme.accent_primary_dark}; }}")
+        return bar
+
+    def _create_watermark_page(self) -> QScrollArea:
+        """创建水印模式内容页（原有布局）"""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
 
@@ -115,7 +176,6 @@ class MainWindow(QMainWindow):
         content_layout = QHBoxLayout(content_widget)
         content_layout.setContentsMargins(25, 25, 25, 25)
         content_layout.setSpacing(25)
-        print(f"    ⏱️  滚动区域: {(time.time() - t0)*1000:.0f}ms")
 
         # 左列：上传 + 图层
         left_column = QVBoxLayout()
@@ -153,12 +213,25 @@ class MainWindow(QMainWindow):
         right_column.addStretch()
         right_column.addWidget(self.output_panel)
 
-        # 添加到内容布局
         content_layout.addLayout(left_column, 55)
         content_layout.addLayout(right_column, 45)
 
         scroll.setWidget(content_widget)
-        main_layout.addWidget(scroll)
+        return scroll
+
+    def _switch_mode(self, index: int):
+        """切换 Watermark (0) / AI Rename (1) 模式"""
+        self._content_stack.setCurrentIndex(index)
+        if index == 0:
+            self.btn_mode_watermark.setObjectName("ModeBtnActive")
+            self.btn_mode_rename.setObjectName("ModeBtnInactive")
+        else:
+            self.btn_mode_watermark.setObjectName("ModeBtnInactive")
+            self.btn_mode_rename.setObjectName("ModeBtnActive")
+        # 重新 setStyleSheet 强制 Qt 刷新 objectName selector
+        ss = ThemeManager.get_theme().get_mode_switcher_stylesheet()
+        self.btn_mode_watermark.setStyleSheet(ss)
+        self.btn_mode_rename.setStyleSheet(ss)
 
     def _connect_signals(self):
         """连接信号槽"""
@@ -190,6 +263,9 @@ class MainWindow(QMainWindow):
         self.status_update_signal.connect(self.output_panel.update_status)
         self.processing_complete_signal.connect(self._on_processing_complete)
         self.processing_error_signal.connect(self._on_processing_error)
+
+        # AI 命名面板
+        self.rename_panel.config_changed.connect(self._save_config)
 
     def _load_initial_data(self):
         """加载初始数据"""
@@ -259,6 +335,15 @@ class MainWindow(QMainWindow):
 
         # 应用新样式
         app.setStyleSheet(new_theme.get_main_stylesheet())
+
+        # 同步模式切换栏样式
+        ss = new_theme.get_mode_switcher_stylesheet()
+        self.btn_mode_watermark.setStyleSheet(ss)
+        self.btn_mode_rename.setStyleSheet(ss)
+        self._mode_switcher_bar.setStyleSheet(
+            f"QWidget#ModeSwitcherBar {{ background-color: {new_theme.bg_dark}; "
+            f"border-bottom: 1px solid {new_theme.accent_primary_dark}; }}"
+        )
 
         # 保存主题设置到配置
         self.config.ui_theme = theme_name
@@ -367,6 +452,47 @@ class MainWindow(QMainWindow):
         self.output_panel.set_processing_state(False)
         dlg = GenshinMessageBox(self, "Processing Failed", err, "error")
         dlg.exec()
+
+    # === 窗口边缘 Resize（Windows 原生 WM_NCHITTEST） ===
+
+    def nativeEvent(self, eventType: QByteArray, message: int):
+        """通过 Windows 原生消息实现边缘拖拽缩放，不受子控件影响。"""
+        WM_NCHITTEST = 0x0084
+        if eventType == b"windows_generic_MSG":
+            msg = ctypes.wintypes.MSG.from_address(int(message))
+            if msg.message == WM_NCHITTEST and not self.isMaximized():
+                # 获取鼠标相对窗口的坐标
+                x = ctypes.c_short(msg.lParam & 0xFFFF).value
+                y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
+                geo = self.frameGeometry()
+                lx = x - geo.left()
+                ly = y - geo.top()
+                m = self._RESIZE_MARGIN
+                w, h = geo.width(), geo.height()
+
+                # WM_NCHITTEST 返回值
+                HTCLIENT = 1
+                HTLEFT = 10; HTRIGHT = 11; HTTOP = 12; HTBOTTOM = 15
+                HTTOPLEFT = 13; HTTOPRIGHT = 14
+                HTBOTTOMLEFT = 16; HTBOTTOMRIGHT = 17
+
+                on_l, on_r = lx < m, lx > w - m
+                on_t, on_b = ly < m, ly > h - m
+
+                if on_t and on_l: ht = HTTOPLEFT
+                elif on_t and on_r: ht = HTTOPRIGHT
+                elif on_b and on_l: ht = HTBOTTOMLEFT
+                elif on_b and on_r: ht = HTBOTTOMRIGHT
+                elif on_l: ht = HTLEFT
+                elif on_r: ht = HTRIGHT
+                elif on_t: ht = HTTOP
+                elif on_b: ht = HTBOTTOM
+                else: ht = 0
+
+                if ht:
+                    return True, ht
+
+        return super().nativeEvent(eventType, message)
 
     def closeEvent(self, event):
         """关闭事件 - 保存配置"""

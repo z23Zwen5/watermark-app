@@ -203,6 +203,7 @@ class WatermarkConfig:
         self.output_resize_height = 1024    # 输出缩放目标高度
         self.layers = []
         self.text_label_config = TextLabelConfig()
+        self.gemini_api_key = ""
 
     def load(self):
         """加载配置"""
@@ -220,6 +221,7 @@ class WatermarkConfig:
                     self.ui_theme = config.get('ui_theme', 'genshin')
                     self.output_resize_enabled = config.get('output_resize_enabled', False)
                     self.output_resize_height = config.get('output_resize_height', 1024)
+                    self.gemini_api_key = config.get('gemini_api_key', "")
 
                     # 加载图层
                     self.layers = []
@@ -239,17 +241,24 @@ class WatermarkConfig:
             print(f"✕ Error loading config: {e}")
             return False
 
-    def save(self, layers, text_label_config, stretch=False, resize_enabled=None, resize_height=None):
+    def save(self, layers=None, text_label_config=None, stretch=None, resize_enabled=None, resize_height=None):
         """保存配置
 
         Args:
-            layers: WatermarkLayer 列表
-            text_label_config: TextLabelConfig 对象
-            stretch: 是否拉伸
+            layers: WatermarkLayer 列表 (None 表示使用当前值)
+            text_label_config: TextLabelConfig 对象 (None 表示使用当前值)
+            stretch: 是否拉伸 (None 表示使用当前值)
             resize_enabled: 是否启用输出缩放 (None 表示使用当前值)
             resize_height: 输出缩放目标高度 (None 表示使用当前值)
         """
         try:
+            if layers is None:
+                layers = self.layers
+            if text_label_config is None:
+                text_label_config = self.text_label_config
+            if stretch is None:
+                stretch = self.last_stretch
+
             layers_info = [layer.to_dict() for layer in layers]
 
             # 更新缩放配置（如果提供了新值）
@@ -268,6 +277,7 @@ class WatermarkConfig:
                 'ui_theme': self.ui_theme,
                 'output_resize_enabled': self.output_resize_enabled,
                 'output_resize_height': self.output_resize_height,
+                'gemini_api_key': self.gemini_api_key,
                 'layers': layers_info,
                 'text_label': text_label_config.to_dict()
             }

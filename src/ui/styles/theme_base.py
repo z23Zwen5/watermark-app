@@ -204,6 +204,11 @@ class Theme(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_mode_switcher_stylesheet(self) -> str:
+        """获取模式切换 Tab 按钮样式表（使用 objectName 区分激活/非激活状态）"""
+        pass
+
 
 class ThemeManager:
     """主题管理器 - 单例模式"""

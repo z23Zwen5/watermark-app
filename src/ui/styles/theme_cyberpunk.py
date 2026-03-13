@@ -353,3 +353,43 @@ class CyberpunkTheme(Theme):
     """
         else:
             return ""
+
+    def get_mode_switcher_stylesheet(self) -> str:
+        """获取模式切换 Tab 按钮样式表"""
+        return f"""
+        QWidget#ModeSwitcherBar {{
+            background-color: {self.bg_dark};
+            border-bottom: 1px solid {self.accent_primary_dark};
+        }}
+        QPushButton#ModeBtnActive {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 {self.btn_grad_start}, stop:1 {self.btn_grad_end});
+            border: none;
+            border-bottom: 2px solid {self.accent_primary};
+            border-radius: 0px;
+            color: {self.bg_dark};
+            font-family: {self.font_family};
+            font-weight: bold;
+            font-size: 13px;
+            padding: 6px 28px;
+            min-height: 36px;
+            max-height: 36px;
+        }}
+        QPushButton#ModeBtnInactive {{
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 0px;
+            color: {self.accent_primary_light};
+            font-family: {self.font_family};
+            font-size: 13px;
+            padding: 6px 28px;
+            min-height: 36px;
+            max-height: 36px;
+        }}
+        QPushButton#ModeBtnInactive:hover {{
+            background-color: {self.hover_bg};
+            border-bottom: 2px solid {self.accent_primary};
+            color: {self.accent_primary_light};
+        }}
+    """

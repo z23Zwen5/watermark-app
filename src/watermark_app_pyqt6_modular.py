@@ -7,11 +7,22 @@ Multi-Layer Watermark App - PyQt6 Modular Version
 这是新的模块化架构入口
 使用 ui/ 包中的模块化组件
 """
+import os
 import sys
 import time
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QIcon
 from ui.main_window import MainWindow
 from ui.styles import apply_global_style
+
+
+def _get_icon_path() -> str:
+    """获取应用图标路径（兼容开发环境和 PyInstaller 打包）"""
+    if getattr(sys, 'frozen', False):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, "assets", "watermark_app_icon.ico")
 
 
 def main():
@@ -19,9 +30,24 @@ def main():
     start_time = time.time()
     print("🚀 应用启动...")
 
+    # Windows 任务栏图标：设置 AppUserModelID 使任务栏显示自定义图标
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "starcore.watermarkapp.v2"
+        )
+    except Exception:
+        pass
+
     # 创建应用
     t0 = time.time()
     app = QApplication(sys.argv)
+
+    # 设置应用图标（任务栏 + 窗口）
+    icon_path = _get_icon_path()
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+
     print(f"⏱️  创建 QApplication: {(time.time() - t0)*1000:.0f}ms")
 
     # 预加载 qtawesome 图标字体（避免首次使用时延迟）

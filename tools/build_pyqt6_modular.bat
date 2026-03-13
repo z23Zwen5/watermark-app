@@ -1,13 +1,13 @@
 @echo off
 REM Multi-Layer Watermark App - PyQt6 模块化版本构建脚本
-REM 版本: v2.1 (Modular Architecture + Output Resize)
+REM 版本: v2.2 (Modular Architecture + AI Rename)
 REM 优化模式: onedir (快速启动 <1秒)
 
 setlocal enabledelayedexpansion
 
 echo ========================================
 echo   WatermarkApp PyQt6 Build Script
-echo   Version: v2.1 (Modular)
+echo   Version: v2.2 (AI Rename)
 echo   Mode: onedir (Fast Startup)
 echo ========================================
 echo.
@@ -18,9 +18,9 @@ set "BUILD_DIR=%PROJECT_ROOT%\build"
 set "DIST_DIR=%PROJECT_ROOT%\dist"
 set "SRC_FILE=%PROJECT_ROOT%\src\watermark_app_pyqt6_modular.py"
 set "ICON_FILE=%PROJECT_ROOT%\assets\watermark_app_icon.ico"
-set "APP_NAME=WatermarkApp_PyQt6_v2.1"
+set "APP_NAME=WatermarkApp_PyQt6_v2.2"
 
-echo [1/7] 检查 Python 环境...
+echo [1/8] 检查 Python 环境...
 python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python 未安装或不在 PATH 中！
@@ -31,7 +31,7 @@ python --version
 echo [OK] Python 环境正常
 echo.
 
-echo [2/7] 检查 PyInstaller...
+echo [2/8] 检查 PyInstaller...
 python -c "import PyInstaller" >nul 2>&1
 if errorlevel 1 (
     echo [WARN] PyInstaller 未安装，正在安装...
@@ -40,7 +40,7 @@ if errorlevel 1 (
 echo [OK] PyInstaller 已安装
 echo.
 
-echo [3/7] 检查依赖...
+echo [3/8] 检查依赖...
 python -c "from PyQt6 import QtWidgets" >nul 2>&1
 if errorlevel 1 (
     echo [WARN] PyQt6 未安装，正在安装...
@@ -49,7 +49,14 @@ if errorlevel 1 (
 echo [OK] 所有依赖已安装
 echo.
 
-echo [4/7] 清理旧文件...
+echo [4/8] 生成资源文件 (SVG + ICO)...
+python "%~dp0generate_assets.py"
+if errorlevel 1 (
+    echo [WARN] 资源生成失败，使用现有资源继续...
+)
+echo.
+
+echo [5/8] 清理旧文件...
 if exist "%BUILD_DIR%" (
     rmdir /s /q "%BUILD_DIR%"
     echo [OK] 清理 build 目录
@@ -60,7 +67,7 @@ if exist "%DIST_DIR%\%APP_NAME%" (
 )
 echo.
 
-echo [5/7] 开始构建...
+echo [6/8] 开始构建...
 echo 源文件: %SRC_FILE%
 echo 图标: %ICON_FILE%
 echo 输出目录: %DIST_DIR%\%APP_NAME%
@@ -68,12 +75,17 @@ echo.
 
 cd /d "%PROJECT_ROOT%"
 
+REM 获取 qtawesome 字体目录
+for /f "delims=" %%i in ('python -c "import qtawesome, os; print(os.path.join(os.path.dirname(qtawesome.__file__), 'fonts'))"') do set "QTA_FONTS_DIR=%%i"
+echo qtawesome fonts: %QTA_FONTS_DIR%
+
 python -m PyInstaller ^
     --name=%APP_NAME% ^
     --onedir ^
     --windowed ^
     --icon="%ICON_FILE%" ^
     --add-data "assets;assets" ^
+    --add-data "%QTA_FONTS_DIR%;qtawesome/fonts" ^
     --paths="src" ^
     --hidden-import=PyQt6 ^
     --hidden-import=PyQt6.QtCore ^
@@ -85,6 +97,7 @@ python -m PyInstaller ^
     --hidden-import=numpy ^
     --hidden-import=watermark_core ^
     --hidden-import=text_label_module ^
+    --hidden-import=rename_module ^
     --hidden-import=ui.main_window ^
     --hidden-import=ui.components.title_bar ^
     --hidden-import=ui.components.message_box ^
@@ -92,11 +105,15 @@ python -m PyInstaller ^
     --hidden-import=ui.panels.layer_panel ^
     --hidden-import=ui.panels.output_panel ^
     --hidden-import=ui.panels.settings_panel ^
+    --hidden-import=ui.panels.text_label_panel ^
+    --hidden-import=ui.panels.rename_panel ^
     --hidden-import=ui.styles ^
     --hidden-import=ui.styles.theme_base ^
     --hidden-import=ui.styles.theme_genshin ^
     --hidden-import=ui.styles.theme_cyberpunk ^
     --hidden-import=ui.styles.genshin_style ^
+    --hidden-import=qtawesome ^
+    --collect-all=qtawesome ^
     --noconfirm ^
     --clean ^
     "src\watermark_app_pyqt6_modular.py"
@@ -109,12 +126,13 @@ if errorlevel 1 (
 )
 
 echo.
-echo [6/7] 验证输出...
+echo [7/8] 验证输出...
 if exist "%DIST_DIR%\%APP_NAME%\%APP_NAME%.exe" (
     echo [OK] 构建成功！
     echo.
     echo 输出位置: %DIST_DIR%\%APP_NAME%\
     echo 主程序: %APP_NAME%.exe
+    echo 版本: v2.2 - AI Rename
 ) else (
     echo [ERROR] 未找到生成的 exe 文件
     pause
@@ -122,7 +140,7 @@ if exist "%DIST_DIR%\%APP_NAME%\%APP_NAME%.exe" (
 )
 
 echo.
-echo [7/7] 清理临时文件...
+echo [8/8] 清理临时文件...
 if exist "%PROJECT_ROOT%\*.spec" (
     del /q "%PROJECT_ROOT%\*.spec"
     echo [OK] 清理 spec 文件
@@ -138,5 +156,6 @@ echo 🚀 启动程序: %APP_NAME%.exe
 echo.
 echo 💡 提示: onedir 模式启动速度快 (<1秒)
 echo    可以将整个文件夹复制到其他电脑使用
+echo    包含: 水印功能 + AI 命名 + 网盘发货
 echo.
 pause
