@@ -126,20 +126,21 @@ class LayerPanel(QWidget):
         return self.watermark_layers
 
     def _add_layer(self):
-        """添加图层"""
+        """添加图层（支持批量选择）"""
         init_dir = self.config.last_watermark_directory or os.path.expanduser("~")
-        path, _ = QFileDialog.getOpenFileName(
+        paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Select Watermark",
+            "Select Watermark(s)",
             init_dir,
             "Images (*.png *.jpg *.jpeg)"
         )
-        if path:
-            layer = WatermarkLayer(path)
-            self.watermark_layers.append(layer)
-            self.config.last_watermark_directory = os.path.dirname(path)
+        if paths:
+            self.config.last_watermark_directory = os.path.dirname(paths[0])
+            for path in paths:
+                layer = WatermarkLayer(path)
+                self.watermark_layers.append(layer)
+                self.layer_added.emit(layer)
             self._update_list()
-            self.layer_added.emit(layer)
             self.layers_changed.emit()
 
     def _remove_layer(self):
