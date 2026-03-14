@@ -10,8 +10,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QScrollArea, QStackedWidget, QPushButton
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint, QByteArray
-import ctypes, ctypes.wintypes, struct
+from PyQt6.QtCore import Qt, pyqtSignal, QEvent
 
 from watermark_core import WatermarkConfig, BatchProcessor
 from .styles.theme_base import ThemeManager
@@ -65,6 +64,7 @@ class MainWindow(QMainWindow):
         # 数据
         self.images = []
         self.image_paths = []
+        self._resize_cursor_active = False
 
         # 处理线程
         self.processing_thread = None
@@ -73,6 +73,9 @@ class MainWindow(QMainWindow):
         t0 = time.time()
         self._create_ui()
         print(f"  ⏱️  创建UI: {(time.time() - t0)*1000:.0f}ms")
+
+        # 为无边框窗口启用 Qt 原生缩放
+        self._install_resize_handlers()
 
         # 连接信号
         t0 = time.time()
@@ -218,6 +221,104 @@ class MainWindow(QMainWindow):
 
         scroll.setWidget(content_widget)
         return scroll
+
+    def _install_resize_handlers(self):
+        """为所有现有子控件安装事件过滤器，支持无边框窗口边缘缩放。"""
+        self.setMouseTracking(True)
+        self.installEventFilter(self)
+
+        for widget in self.findChildren(QWidget):
+            widget.setMouseTracking(True)
+            widget.installEventFilter(self)
+
+    def _resize_edges_at(self, global_pos):
+        """根据全局鼠标位置计算当前命中的窗口边缘。"""
+        if self.isMaximized():
+            return Qt.Edge(0)
+
+        pos = self.mapFromGlobal(global_pos)
+        rect = self.rect()
+        margin = self._RESIZE_MARGIN
+
+        on_left = pos.x() <= margin
+        on_right = pos.x() >= rect.width() - margin
+        on_top = pos.y() <= margin
+        on_bottom = pos.y() >= rect.height() - margin
+
+        edges = Qt.Edge(0)
+        if on_left:
+            edges |= Qt.Edge.LeftEdge
+        elif on_right:
+            edges |= Qt.Edge.RightEdge
+
+        if on_top:
+            edges |= Qt.Edge.TopEdge
+        elif on_bottom:
+            edges |= Qt.Edge.BottomEdge
+
+        return edges
+
+    @staticmethod
+    def _cursor_for_edges(edges):
+        """根据命中的边缘返回对应的缩放光标。"""
+        if edges in (Qt.Edge.LeftEdge, Qt.Edge.RightEdge):
+            return Qt.CursorShape.SizeHorCursor
+        if edges in (Qt.Edge.TopEdge, Qt.Edge.BottomEdge):
+            return Qt.CursorShape.SizeVerCursor
+        if edges in (
+            Qt.Edge.TopEdge | Qt.Edge.LeftEdge,
+            Qt.Edge.BottomEdge | Qt.Edge.RightEdge,
+        ):
+            return Qt.CursorShape.SizeFDiagCursor
+        if edges in (
+            Qt.Edge.TopEdge | Qt.Edge.RightEdge,
+            Qt.Edge.BottomEdge | Qt.Edge.LeftEdge,
+        ):
+            return Qt.CursorShape.SizeBDiagCursor
+        return None
+
+    def _update_resize_cursor(self, global_pos):
+        """在鼠标移动时更新边缘缩放光标。"""
+        cursor_shape = self._cursor_for_edges(self._resize_edges_at(global_pos))
+        if cursor_shape is None:
+            if self._resize_cursor_active:
+                self.unsetCursor()
+                self._resize_cursor_active = False
+            return
+
+        self.setCursor(cursor_shape)
+        self._resize_cursor_active = True
+
+    def _try_start_system_resize(self, global_pos):
+        """在命中窗口边缘时启动系统级缩放。"""
+        window_handle = self.windowHandle()
+        edges = self._resize_edges_at(global_pos)
+        if not window_handle or not edges:
+            return False
+
+        try:
+            return bool(window_handle.startSystemResize(edges))
+        except Exception:
+            return False
+
+    def eventFilter(self, obj, event):
+        """统一处理无边框窗口的边缘缩放。"""
+        event_type = event.type()
+
+        if event_type == QEvent.Type.MouseMove:
+            self._update_resize_cursor(event.globalPosition().toPoint())
+        elif event_type == QEvent.Type.MouseButtonPress:
+            if (
+                event.button() == Qt.MouseButton.LeftButton
+                and self._try_start_system_resize(event.globalPosition().toPoint())
+            ):
+                return True
+        elif event_type == QEvent.Type.Leave and obj is self:
+            if self._resize_cursor_active:
+                self.unsetCursor()
+                self._resize_cursor_active = False
+
+        return super().eventFilter(obj, event)
 
     def _switch_mode(self, index: int):
         """切换 Watermark (0) / AI Rename (1) 模式"""
@@ -452,47 +553,6 @@ class MainWindow(QMainWindow):
         self.output_panel.set_processing_state(False)
         dlg = GenshinMessageBox(self, "Processing Failed", err, "error")
         dlg.exec()
-
-    # === 窗口边缘 Resize（Windows 原生 WM_NCHITTEST） ===
-
-    def nativeEvent(self, eventType: QByteArray, message: int):
-        """通过 Windows 原生消息实现边缘拖拽缩放，不受子控件影响。"""
-        WM_NCHITTEST = 0x0084
-        if eventType == b"windows_generic_MSG":
-            msg = ctypes.wintypes.MSG.from_address(int(message))
-            if msg.message == WM_NCHITTEST and not self.isMaximized():
-                # 获取鼠标相对窗口的坐标
-                x = ctypes.c_short(msg.lParam & 0xFFFF).value
-                y = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
-                geo = self.frameGeometry()
-                lx = x - geo.left()
-                ly = y - geo.top()
-                m = self._RESIZE_MARGIN
-                w, h = geo.width(), geo.height()
-
-                # WM_NCHITTEST 返回值
-                HTCLIENT = 1
-                HTLEFT = 10; HTRIGHT = 11; HTTOP = 12; HTBOTTOM = 15
-                HTTOPLEFT = 13; HTTOPRIGHT = 14
-                HTBOTTOMLEFT = 16; HTBOTTOMRIGHT = 17
-
-                on_l, on_r = lx < m, lx > w - m
-                on_t, on_b = ly < m, ly > h - m
-
-                if on_t and on_l: ht = HTTOPLEFT
-                elif on_t and on_r: ht = HTTOPRIGHT
-                elif on_b and on_l: ht = HTBOTTOMLEFT
-                elif on_b and on_r: ht = HTBOTTOMRIGHT
-                elif on_l: ht = HTLEFT
-                elif on_r: ht = HTRIGHT
-                elif on_t: ht = HTTOP
-                elif on_b: ht = HTBOTTOM
-                else: ht = 0
-
-                if ht:
-                    return True, ht
-
-        return super().nativeEvent(eventType, message)
 
     def closeEvent(self, event):
         """关闭事件 - 保存配置"""
