@@ -211,13 +211,12 @@ class RenamePanel(QWidget):
         self._vbox.setContentsMargins(25, 20, 25, 25)
         self._vbox.setSpacing(15)
 
-        self._vbox.addWidget(self._make_source_group())
-        self._vbox.addWidget(self._make_config_group())
-        self._vbox.addWidget(self._make_action_strip())
+        self._vbox.addWidget(self._make_source_group(), 1)    # 文件列表拉伸
+        self._vbox.addWidget(self._make_config_group(), 0)   # 配置区固定
+        self._vbox.addWidget(self._make_action_strip(), 0)   # 操作区固定
         self._results_group = self._make_results_group()
         self._results_group.setVisible(False)
-        self._vbox.addWidget(self._results_group)
-        self._vbox.addStretch()
+        self._vbox.addWidget(self._results_group, 1)          # 结果区拉伸
 
         scroll.setWidget(content)
         outer.addWidget(scroll)
@@ -241,7 +240,7 @@ class RenamePanel(QWidget):
         lay.addWidget(self.lbl_count)
 
         self.list_files = QListWidget()
-        self.list_files.setFixedHeight(100)
+        self.list_files.setMinimumHeight(60)
         self.list_files.setStyleSheet(
             f"QListWidget {{ border: 1px solid {self.theme.accent_primary_dark}; "
             f"border-radius: 6px; background: {self.theme.bg_input}; "
@@ -316,14 +315,12 @@ class RenamePanel(QWidget):
         key_lay.addWidget(self.key_edit, 1)
 
         self.btn_toggle_key = QPushButton("Show")
-        self.btn_toggle_key.setFixedWidth(60)
         self.btn_toggle_key.setFixedHeight(28)
         self.btn_toggle_key.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.btn_toggle_key.clicked.connect(self._on_toggle_key_visibility)
         key_lay.addWidget(self.btn_toggle_key)
 
         self.btn_save_key = QPushButton("Save")
-        self.btn_save_key.setFixedWidth(60)
         self.btn_save_key.setFixedHeight(28)
         self.btn_save_key.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.btn_save_key.clicked.connect(self._on_save_key)
