@@ -45,8 +45,8 @@ class SettingsPanel(QWidget):
 
         # 添加主题选项（带显示名称）
         theme_display_names = {
-            'genshin': '🎨 Genshin Impact',
-            'cyberpunk': '🌆 Cyberpunk 2077'
+            'genshin': 'Genshin Impact',
+            'cyberpunk': 'Cyberpunk 2077'
         }
 
         for theme_name in available_themes:

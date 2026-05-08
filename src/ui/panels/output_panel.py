@@ -93,7 +93,7 @@ class OutputPanel(QWidget):
         """更新路径标签"""
         d = self.config.save_directory
         if d:
-            self.lbl_path.setText(f"📂 {os.path.basename(d)} ({d})")
+            self.lbl_path.setText(f"{os.path.basename(d)} ({d})")
         else:
             self.lbl_path.setText("Auto (Save to source folder)")
 

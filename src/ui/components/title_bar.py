@@ -48,11 +48,6 @@ class CustomTitleBar(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(15, 0, 10, 0)
 
-        # 图标
-        self.icon_label = QLabel("✦")
-        self.icon_label.setStyleSheet(f"color: {self.theme.accent_primary_dark}; font-size: 22px;")
-        layout.addWidget(self.icon_label)
-
         # 标题
         self.title_label = QLabel("Multi-Layer Watermark Tool")
 

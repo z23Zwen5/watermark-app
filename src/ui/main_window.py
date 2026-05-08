@@ -35,20 +35,20 @@ class MainWindow(QMainWindow):
     def __init__(self):
         t0 = time.time()
         super().__init__()
-        print(f"  ⏱️  super().__init__: {(time.time() - t0)*1000:.0f}ms")
+        print(f"  super().__init__: {(time.time() - t0)*1000:.0f}ms")
 
         # 无边框窗口
         t0 = time.time()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.resize(1100, 750)
-        print(f"  ⏱️  窗口设置: {(time.time() - t0)*1000:.0f}ms")
+        print(f"  窗口设置: {(time.time() - t0)*1000:.0f}ms")
 
         # 业务逻辑
         t0 = time.time()
         self.config = WatermarkConfig()
         self.config.load()
-        print(f"  ⏱️  加载配置: {(time.time() - t0)*1000:.0f}ms")
+        print(f"  加载配置: {(time.time() - t0)*1000:.0f}ms")
 
         # 应用保存的主题设置
         t0 = time.time()
@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
             app = QApplication.instance()
             theme = ThemeManager.get_theme()
             app.setStyleSheet(theme.get_main_stylesheet())
-        print(f"  ⏱️  应用主题: {(time.time() - t0)*1000:.0f}ms")
+        print(f"  应用主题: {(time.time() - t0)*1000:.0f}ms")
 
         # 数据
         self.images = []
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         # 创建UI
         t0 = time.time()
         self._create_ui()
-        print(f"  ⏱️  创建UI: {(time.time() - t0)*1000:.0f}ms")
+        print(f"  创建UI: {(time.time() - t0)*1000:.0f}ms")
 
         # 为无边框窗口启用 Qt 原生缩放
         self._install_resize_handlers()
@@ -80,12 +80,12 @@ class MainWindow(QMainWindow):
         # 连接信号
         t0 = time.time()
         self._connect_signals()
-        print(f"  ⏱️  连接信号: {(time.time() - t0)*1000:.0f}ms")
+        print(f"  连接信号: {(time.time() - t0)*1000:.0f}ms")
 
         # 加载初始数据
         t0 = time.time()
         self._load_initial_data()
-        print(f"  ⏱️  加载初始数据: {(time.time() - t0)*1000:.0f}ms")
+        print(f"  加载初始数据: {(time.time() - t0)*1000:.0f}ms")
 
     def _create_ui(self):
         """创建UI"""
@@ -104,37 +104,37 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(self.center_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        print(f"    ⏱️  中心部件: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    中心部件: {(time.time() - t0)*1000:.0f}ms")
 
         # 标题栏
         t0 = time.time()
         self.title_bar = CustomTitleBar(self)
         main_layout.addWidget(self.title_bar)
-        print(f"    ⏱️  标题栏: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    标题栏: {(time.time() - t0)*1000:.0f}ms")
 
         # 模式切换栏
         t0 = time.time()
         self._mode_switcher_bar = self._create_mode_switcher()
         main_layout.addWidget(self._mode_switcher_bar)
-        print(f"    ⏱️  模式切换栏: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    模式切换栏: {(time.time() - t0)*1000:.0f}ms")
 
         # 内容区（QStackedWidget）
         t0 = time.time()
         self._content_stack = QStackedWidget()
         main_layout.addWidget(self._content_stack)
-        print(f"    ⏱️  内容堆栈: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    内容堆栈: {(time.time() - t0)*1000:.0f}ms")
 
         # Page 0: 水印模式（原有内容）
         t0 = time.time()
         watermark_page = self._create_watermark_page()
         self._content_stack.addWidget(watermark_page)
-        print(f"    ⏱️  水印页面: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    水印页面: {(time.time() - t0)*1000:.0f}ms")
 
         # Page 1: AI 命名模式
         t0 = time.time()
         self.rename_panel = RenamePanel(self.config)
         self._content_stack.addWidget(self.rename_panel)
-        print(f"    ⏱️  命名面板: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    命名面板: {(time.time() - t0)*1000:.0f}ms")
 
     def _create_mode_switcher(self) -> QWidget:
         """创建模式切换 Tab 栏"""
@@ -186,11 +186,11 @@ class MainWindow(QMainWindow):
 
         t0 = time.time()
         self.upload_panel = UploadPanel(self.config)
-        print(f"    ⏱️  上传面板: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    上传面板: {(time.time() - t0)*1000:.0f}ms")
 
         t0 = time.time()
         self.layer_panel = LayerPanel(self.config)
-        print(f"    ⏱️  图层面板: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    图层面板: {(time.time() - t0)*1000:.0f}ms")
 
         left_column.addWidget(self.upload_panel)
         left_column.addWidget(self.layer_panel)
@@ -201,15 +201,15 @@ class MainWindow(QMainWindow):
 
         t0 = time.time()
         self.settings_panel = SettingsPanel()
-        print(f"    ⏱️  设置面板: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    设置面板: {(time.time() - t0)*1000:.0f}ms")
 
         t0 = time.time()
         self.text_label_panel = TextLabelPanel(self.config.text_label_config)
-        print(f"    ⏱️  文本标注面板: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    文本标注面板: {(time.time() - t0)*1000:.0f}ms")
 
         t0 = time.time()
         self.output_panel = OutputPanel(self.config)
-        print(f"    ⏱️  输出面板: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    输出面板: {(time.time() - t0)*1000:.0f}ms")
 
         right_column.addWidget(self.settings_panel)
         right_column.addWidget(self.text_label_panel)
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
         # 设置图层
         t0 = time.time()
         self.layer_panel.set_layers(self.config.layers)
-        print(f"    ⏱️  加载图层 ({len(self.config.layers)}个): {(time.time() - t0)*1000:.0f}ms")
+        print(f"    加载图层 ({len(self.config.layers)}个): {(time.time() - t0)*1000:.0f}ms")
 
         # 设置其他配置
         self.settings_panel.set_stretch(self.config.last_stretch)
@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
         # 自动加载上次的文件
         t0 = time.time()
         self.upload_panel.load_last_files()
-        print(f"    ⏱️  加载上次文件: {(time.time() - t0)*1000:.0f}ms")
+        print(f"    加载上次文件: {(time.time() - t0)*1000:.0f}ms")
 
     def _toggle_maximize(self):
         """切换最大化状态"""

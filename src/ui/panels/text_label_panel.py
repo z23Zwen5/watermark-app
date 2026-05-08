@@ -159,7 +159,7 @@ class TextLabelPanel(QWidget):
             if index >= 0:
                 self.cb_font.setCurrentIndex(index)
 
-        print(f"✅ UI已更新，加载 {len(sys_fonts)} 个字体")
+        print(f"UI已更新，加载 {len(sys_fonts)} 个字体")
 
     def get_config(self):
         """获取配置"""

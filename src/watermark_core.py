@@ -250,7 +250,7 @@ class WatermarkConfig:
 
                 return True
         except Exception as e:
-            print(f"✕ Error loading config: {e}")
+            print(f"Error loading config: {e}")
             return False
 
     def save(self, layers=None, text_label_config=None, stretch=None, resize_enabled=None, resize_height=None):
@@ -305,7 +305,7 @@ class WatermarkConfig:
                 json.dump(config, f, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
-            print(f"✕ Error saving config: {e}")
+            print(f"Error saving config: {e}")
             return False
 
 

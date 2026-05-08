@@ -661,18 +661,25 @@ def save_rename_outputs(
     folder: str,
     image_paths: list,
     outputs: dict,
+    save_txts: bool = True,
     rename_images: bool = True,
 ) -> dict:
-    """写入 txt 文件并重命名图片。返回 {txt_files, renamed}。"""
+    """按需写入 txt 文件 / 重命名图片。返回 {txt_files, renamed}。
+
+    save_txts:    True 时写 文案.txt + 规格清单.txt
+    rename_images: True 时按 outputs['file_names'] 改名
+    两个开关相互独立，避免 Rename Files 顺手覆盖已编辑过的 txt。
+    """
     txt_files = []
 
-    with open(os.path.join(folder, "文案.txt"), "w", encoding="utf-8") as f:
-        f.write(outputs["post"])
-    txt_files.append("文案.txt")
+    if save_txts:
+        with open(os.path.join(folder, "文案.txt"), "w", encoding="utf-8") as f:
+            f.write(outputs["post"])
+        txt_files.append("文案.txt")
 
-    with open(os.path.join(folder, "规格清单.txt"), "w", encoding="utf-8") as f:
-        f.write("\n".join(outputs["display_names"]))
-    txt_files.append("规格清单.txt")
+        with open(os.path.join(folder, "规格清单.txt"), "w", encoding="utf-8") as f:
+            f.write("\n".join(outputs["display_names"]))
+        txt_files.append("规格清单.txt")
 
     renamed = []
     if rename_images:

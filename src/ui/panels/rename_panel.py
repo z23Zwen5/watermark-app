@@ -69,7 +69,7 @@ class PromptEditDialog(QDialog):
         layout.addWidget(self.text_edit, 1)
 
         btn_row = QHBoxLayout()
-        self.btn_restore = QPushButton("🔄 还原默认")
+        self.btn_restore = QPushButton("还原默认")
         self.btn_restore.setStyleSheet(theme.get_button_stylesheet('secondary'))
         self.btn_restore.clicked.connect(self._on_restore)
         btn_row.addWidget(self.btn_restore)
@@ -81,7 +81,7 @@ class PromptEditDialog(QDialog):
         self.btn_cancel.clicked.connect(self.reject)
         btn_row.addWidget(self.btn_cancel)
 
-        self.btn_save = QPushButton("💾 保存")
+        self.btn_save = QPushButton("保存")
         self.btn_save.setStyleSheet(theme.get_button_stylesheet('primary'))
         self.btn_save.clicked.connect(self._on_save)
         btn_row.addWidget(self.btn_save)
@@ -184,7 +184,7 @@ class PanDeliveryDialog(QDialog):
         self.status_lbl.setStyleSheet(f"color: {theme.text_secondary}; font-size: 11px;")
         bottom_row.addWidget(self.status_lbl, 1)
 
-        self.copy_btn = QPushButton("📋 复制")
+        self.copy_btn = QPushButton("复制")
         self.copy_btn.setStyleSheet(theme.get_button_stylesheet('secondary'))
         self.copy_btn.clicked.connect(self._on_copy)
         bottom_row.addWidget(self.copy_btn)
@@ -210,12 +210,12 @@ class PanDeliveryDialog(QDialog):
     def _on_generate(self):
         pan_raw = self.input_text.toPlainText().strip()
         if not pan_raw:
-            self.status_lbl.setText("⚠ 请先粘贴网盘分享文本")
+            self.status_lbl.setText("请先粘贴网盘分享文本")
             return
 
         file_names, warnings = self._get_effective_file_names()
         if not file_names:
-            self.status_lbl.setText("⚠ 无可用文件名（请先生成命名或选择已命名图片）")
+            self.status_lbl.setText("无可用文件名（请先生成命名或选择已命名图片）")
             return
 
         greeting = self.greeting_edit.toPlainText().strip()
@@ -224,7 +224,7 @@ class PanDeliveryDialog(QDialog):
 
         if warnings:
             skipped = warnings[0]
-            prefix = f"⚠ 已跳过 {skipped} 张未命名图片。"
+            prefix = f"已跳过 {skipped} 张未命名图片。"
         else:
             prefix = ""
 
@@ -234,11 +234,11 @@ class PanDeliveryDialog(QDialog):
                 names_str += f" …等{len(unmatched)}个"
             matched_n = len(file_names) - len(unmatched)
             self.status_lbl.setText(
-                f"{prefix}⚠ {matched_n}/{len(file_names)} 已匹配，未匹配: {names_str}"
+                f"{prefix}{matched_n}/{len(file_names)} 已匹配，未匹配: {names_str}"
             )
             self.status_lbl.setStyleSheet("color: orange; font-size: 11px;")
         else:
-            self.status_lbl.setText(f"{prefix}✅ 全部 {len(file_names)} 个文件已匹配")
+            self.status_lbl.setText(f"{prefix}全部 {len(file_names)} 个文件已匹配")
             self.status_lbl.setStyleSheet("color: #4CAF50; font-size: 11px;")
 
     def _on_copy(self):
@@ -247,25 +247,25 @@ class PanDeliveryDialog(QDialog):
             return
         from PyQt6.QtWidgets import QApplication
         QApplication.clipboard().setText(content)
-        self.status_lbl.setText("已复制到剪贴板 ✓")
+        self.status_lbl.setText("已复制到剪贴板")
 
     def _on_append(self):
         content = self.result_text.toPlainText().strip()
         if not content:
-            self.status_lbl.setText("⚠ 请先生成发货信息")
+            self.status_lbl.setText("请先生成发货信息")
             return
         if not self.save_folder:
-            self.status_lbl.setText("⚠ 未知保存目录")
+            self.status_lbl.setText("未知保存目录")
             return
         target = os.path.join(self.save_folder, "规格清单.txt")
         if not os.path.exists(target):
-            self.status_lbl.setText("⚠ 未找到 规格清单.txt，请先保存文件")
+            self.status_lbl.setText("未找到 规格清单.txt，请先保存文件")
             return
         try:
             with open(target, "a", encoding="utf-8") as f:
                 f.write("\n\n=== 发货信息 ===\n")
                 f.write(content)
-            self.status_lbl.setText("已追加到 规格清单.txt ✓")
+            self.status_lbl.setText("已追加到 规格清单.txt")
         except Exception as e:
             self.status_lbl.setText(f"写入失败: {e}")
 
@@ -324,7 +324,7 @@ class RenamePanel(QWidget):
         outer.addWidget(scroll)
 
     def _make_source_group(self) -> QGroupBox:
-        grp = QGroupBox("📁 Source Images")
+        grp = QGroupBox("Source Images")
         lay = QVBoxLayout(grp)
         lay.setSpacing(8)
 
@@ -352,7 +352,7 @@ class RenamePanel(QWidget):
         return grp
 
     def _make_config_group(self) -> QGroupBox:
-        grp = QGroupBox("⚙️ Naming Config")
+        grp = QGroupBox("Naming Config")
         grid_lay = QVBoxLayout(grp)
         grid_lay.setSpacing(8)
 
@@ -423,7 +423,7 @@ class RenamePanel(QWidget):
         self.theme_hint_edit.setPlaceholderText("可选：描述主题风格/角色背景，帮助 AI 更精准输出（如：暗黑风鬼怪，主角是狐妖）")
         row3.addWidget(self.theme_hint_edit, 1)
 
-        self.btn_edit_prompt = QPushButton("📝 Edit Prompt")
+        self.btn_edit_prompt = QPushButton("Edit Prompt")
         self.btn_edit_prompt.setFixedHeight(28)
         self.btn_edit_prompt.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_edit_prompt.setToolTip("编辑内置的 AI 命名 Prompt 模板")
@@ -474,7 +474,7 @@ class RenamePanel(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(6)
 
-        self.btn_generate = QPushButton("🚀  Generate Names")
+        self.btn_generate = QPushButton("Generate Names")
         self.btn_generate.setStyleSheet(self.theme.get_button_stylesheet('primary'))
         self.btn_generate.setMinimumHeight(50)
         self.btn_generate.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -496,12 +496,12 @@ class RenamePanel(QWidget):
         tool_row = QHBoxLayout()
         tool_row.addStretch()
 
-        self.btn_spec = QPushButton("📋 Generate Specs")
+        self.btn_spec = QPushButton("Generate Specs")
         self.btn_spec.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.btn_spec.clicked.connect(self._on_generate_spec)
         tool_row.addWidget(self.btn_spec)
 
-        self.btn_pan = QPushButton("📎 Pan Delivery")
+        self.btn_pan = QPushButton("Pan Delivery")
         self.btn_pan.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.btn_pan.clicked.connect(self._on_pan_delivery)
         tool_row.addWidget(self.btn_pan)
@@ -510,7 +510,7 @@ class RenamePanel(QWidget):
         return container
 
     def _make_results_group(self) -> QGroupBox:
-        grp = QGroupBox("✅ Results")
+        grp = QGroupBox("Results")
         lay = QVBoxLayout(grp)
         lay.setSpacing(10)
 
@@ -528,12 +528,17 @@ class RenamePanel(QWidget):
         # 操作按钮行
         btn_row = QHBoxLayout()
 
-        self.btn_save_txt = QPushButton("💾 Save TXT Files")
+        self.btn_save_txt = QPushButton("Save TXT Files")
         self.btn_save_txt.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.btn_save_txt.clicked.connect(self._on_save_txt)
         btn_row.addWidget(self.btn_save_txt)
 
-        self.btn_rename = QPushButton("✏️ Rename Files")
+        self.btn_save_rename = QPushButton("Save & Rename")
+        self.btn_save_rename.setStyleSheet(self.theme.get_button_stylesheet('primary'))
+        self.btn_save_rename.clicked.connect(self._on_save_and_rename)
+        btn_row.addWidget(self.btn_save_rename)
+
+        self.btn_rename = QPushButton("Rename Files")
         self.btn_rename.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         self.btn_rename.clicked.connect(self._on_rename_files)
         btn_row.addWidget(self.btn_rename)
@@ -553,7 +558,7 @@ class RenamePanel(QWidget):
         text_edit.setFont(QFont("Consolas", 10))
         lay.addWidget(text_edit)
 
-        copy_btn = QPushButton("📋 Copy")
+        copy_btn = QPushButton("Copy")
         copy_btn.setFixedHeight(28)
         copy_btn.setStyleSheet(self.theme.get_button_stylesheet('secondary'))
         copy_btn.clicked.connect(lambda: self._copy_text(text_edit))
@@ -610,13 +615,13 @@ class RenamePanel(QWidget):
         has_key = bool(getattr(self.config, spec["key_attr"], ""))
         arrow = "▲" if self._api_key_expanded else "▼"
         if has_key:
-            self.btn_apikey_toggle.setText(f"🔑 Key set {arrow}")
+            self.btn_apikey_toggle.setText(f"Key set {arrow}")
             self.btn_apikey_toggle.setStyleSheet(
                 self.theme.get_button_stylesheet('secondary') +
                 "QPushButton { color: #4CAF50; border-color: #4CAF50; }"
             )
         else:
-            self.btn_apikey_toggle.setText(f"🔑 Set API Key {arrow}")
+            self.btn_apikey_toggle.setText(f"Set API Key {arrow}")
             self.btn_apikey_toggle.setStyleSheet(
                 self.theme.get_button_stylesheet('secondary') +
                 "QPushButton { color: #FF9800; border-color: #FF9800; }"
@@ -642,13 +647,13 @@ class RenamePanel(QWidget):
         is_custom = bool(self.config.custom_prompt)
         base = self.theme.get_button_stylesheet('secondary')
         if is_custom:
-            self.btn_edit_prompt.setText("📝 Edit Prompt *")
+            self.btn_edit_prompt.setText("Edit Prompt *")
             self.btn_edit_prompt.setStyleSheet(
                 base + "QPushButton { color: #4CAF50; border-color: #4CAF50; }"
             )
             self.btn_edit_prompt.setToolTip("当前使用自定义 Prompt（点击编辑）")
         else:
-            self.btn_edit_prompt.setText("📝 Edit Prompt")
+            self.btn_edit_prompt.setText("Edit Prompt")
             self.btn_edit_prompt.setStyleSheet(base)
             self.btn_edit_prompt.setToolTip("编辑内置的 AI 命名 Prompt 模板")
 
@@ -661,7 +666,7 @@ class RenamePanel(QWidget):
                 self.config_changed.emit()
                 self._update_edit_prompt_btn_style()
                 self.lbl_status.setText(
-                    "Prompt saved ✓ (custom)" if tpl else "Prompt reset to default ✓"
+                    "Prompt saved (custom)" if tpl else "Prompt reset to default"
                 )
 
     def _on_auto_series_changed(self, state):
@@ -683,7 +688,7 @@ class RenamePanel(QWidget):
         spec = PROVIDERS[self._current_provider_key()]
         setattr(self.config, spec["key_attr"], key)
         self.config_changed.emit()
-        self.lbl_status.setText("API Key saved ✓")
+        self.lbl_status.setText("API Key saved")
         self._update_apikey_btn_label()
         # 保存后自动折叠
         if key and self._api_key_expanded:
@@ -715,7 +720,7 @@ class RenamePanel(QWidget):
             return
 
         self.btn_generate.setEnabled(False)
-        self.lbl_status.setText(f"⏳ Calling {provider} API…")
+        self.lbl_status.setText(f"Calling {provider} API…")
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)   # indeterminate
 
@@ -765,13 +770,13 @@ class RenamePanel(QWidget):
         self._tab_post[1].setPlainText(outputs["post"])
 
         self._results_group.setVisible(True)
-        self.lbl_status.setText(f"✅ Done! Generated {len(outputs['file_names'])} names.")
+        self.lbl_status.setText(f"Done. Generated {len(outputs['file_names'])} names.")
 
     def _on_generation_error(self, err: str):
         self.btn_generate.setEnabled(True)
         self.progress_bar.setVisible(False)
         self.progress_bar.setRange(0, 100)
-        self.lbl_status.setText("❌ Generation failed")
+        self.lbl_status.setText("Generation failed")
         dlg = GenshinMessageBox(self, "API Error", f"Call failed:\n\n{err[:600]}", "error")
         dlg.exec()
 
@@ -794,6 +799,7 @@ class RenamePanel(QWidget):
                 folder=folder,
                 image_paths=self.image_paths,
                 outputs=self._last_outputs,
+                save_txts=True,
                 rename_images=False,
             )
             self.config.save_directory = folder
@@ -829,6 +835,7 @@ class RenamePanel(QWidget):
                 folder=folder,
                 image_paths=self.image_paths,
                 outputs=self._last_outputs,
+                save_txts=False,
                 rename_images=True,
             )
             self.config.save_directory = folder
@@ -846,6 +853,50 @@ class RenamePanel(QWidget):
             dlg.exec()
         except Exception as e:
             dlg = GenshinMessageBox(self, "Error", f"Rename failed:\n{e}", "error")
+            dlg.exec()
+
+    def _on_save_and_rename(self):
+        """一键：写 文案.txt + 规格清单.txt，然后按命名重命名图片。"""
+        if not self._last_outputs:
+            dlg = GenshinMessageBox(self, "Oops", "Please generate names first!", "error")
+            dlg.exec()
+            return
+        folder = QFileDialog.getExistingDirectory(self, "Select Target Folder", self._default_target_dir())
+        if not folder:
+            return
+
+        lines = ["Will save TXT files and rename:\n"]
+        for i, p in enumerate(self.image_paths):
+            if i < len(self._last_outputs["file_names"]):
+                lines.append(f"{os.path.basename(p)}  ->  {self._last_outputs['file_names'][i]}")
+        dlg_confirm = GenshinMessageBox(self, "Confirm Save & Rename", "\n".join(lines), "success")
+        if not dlg_confirm.exec():
+            return
+
+        try:
+            result = save_rename_outputs(
+                folder=folder,
+                image_paths=self.image_paths,
+                outputs=self._last_outputs,
+                save_txts=True,
+                rename_images=True,
+            )
+            self.config.save_directory = folder
+            self.config_changed.emit()
+            self.image_paths = [
+                os.path.join(folder, new) for _, new in result["renamed"]
+            ]
+            self.list_files.clear()
+            for p in self.image_paths:
+                self.list_files.addItem(os.path.basename(p))
+
+            saved = ", ".join(result["txt_files"])
+            count = len(result["renamed"])
+            msg = f"Saved {saved}\nRenamed {count} file(s)\n\n{folder}"
+            dlg = GenshinMessageBox(self, "Done", msg, "success")
+            dlg.exec()
+        except Exception as e:
+            dlg = GenshinMessageBox(self, "Error", f"Save & Rename failed:\n{e}", "error")
             dlg.exec()
 
     def _on_generate_spec(self):
@@ -887,7 +938,7 @@ class RenamePanel(QWidget):
                 msg = f"Saved 规格清单.txt ({named_count} entries)\n\n{folder}"
             dlg = GenshinMessageBox(self, "Saved", msg, "success")
             dlg.exec()
-            self.lbl_status.setText(f"✅ Specs saved ({named_count} entries)")
+            self.lbl_status.setText(f"Specs saved ({named_count} entries)")
         except Exception as e:
             dlg = GenshinMessageBox(self, "Error", f"Save failed:\n{e}", "error")
             dlg.exec()

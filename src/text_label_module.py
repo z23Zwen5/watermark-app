@@ -69,7 +69,7 @@ def scan_system_fonts():
                         font_name = font_name.replace('_', ' ').replace('-', ' ')
                         fonts[font_name] = font_path
         except Exception as e:
-            print(f"⚠️ 扫描字体目录出错 {font_dir}: {e}")
+            print(f"扫描字体目录出错 {font_dir}: {e}")
 
     # 添加常用字体的友好名称映射
     friendly_names = {
@@ -154,14 +154,14 @@ def _load_font_cache():
         current_mtime = _get_font_dirs_mtime()
 
         if current_mtime > cached_mtime:
-            print("⚠️ 字体目录已更新，缓存已过期")
+            print("字体目录已更新，缓存已过期")
             return None
 
         fonts = cache_data.get('fonts', {})
-        print(f"✅ 从缓存加载 {len(fonts)} 个字体")
+        print(f"从缓存加载 {len(fonts)} 个字体")
         return fonts
     except Exception as e:
-        print(f"⚠️ 加载字体缓存失败: {e}")
+        print(f"加载字体缓存失败: {e}")
         return None
 
 
@@ -178,9 +178,9 @@ def _save_font_cache(fonts):
         }
         with open(_FONT_CACHE_FILE, 'w', encoding='utf-8') as f:
             json.dump(cache_data, f, ensure_ascii=False, indent=2)
-        print(f"💾 已保存字体缓存到 {_FONT_CACHE_FILE}")
+        print(f"已保存字体缓存到 {_FONT_CACHE_FILE}")
     except Exception as e:
-        print(f"⚠️ 保存字体缓存失败: {e}")
+        print(f"保存字体缓存失败: {e}")
 
 
 def get_system_fonts():
@@ -198,7 +198,7 @@ def get_system_fonts():
             return _SYSTEM_FONTS_CACHE
 
         # 缓存不可用，返回空字典（后台扫描由 UI 触发）
-        print("⚠️ 字体缓存不可用，需要扫描")
+        print("字体缓存不可用，需要扫描")
         return {}
 
     return _SYSTEM_FONTS_CACHE
@@ -214,9 +214,9 @@ def scan_fonts_async(callback=None):
 
     def _scan_task():
         global _SYSTEM_FONTS_CACHE
-        print("🔍 后台扫描系统字体...")
+        print("后台扫描系统字体...")
         fonts = scan_system_fonts()
-        print(f"✅ 扫描完成，找到 {len(fonts)} 个字体")
+        print(f"扫描完成，找到 {len(fonts)} 个字体")
 
         # 保存到缓存
         _save_font_cache(fonts)
@@ -230,7 +230,7 @@ def scan_fonts_async(callback=None):
 
     # 如果已经有扫描线程在运行，不重复启动
     if _FONT_SCAN_THREAD and _FONT_SCAN_THREAD.is_alive():
-        print("⚠️ 字体扫描已在进行中")
+        print("字体扫描已在进行中")
         return
 
     _FONT_SCAN_THREAD = threading.Thread(target=_scan_task, daemon=True)
@@ -311,7 +311,7 @@ class TextLabelConfig:
         if font_size > 15:  # 旧配置使用像素值
             # 转换为百分比（基于 1080p 高度）
             self.font_size = round((font_size / 1080) * 100, 1)
-            print(f"🔄 转换旧字体大小: {font_size}px → {self.font_size}%")
+            print(f"转换旧字体大小: {font_size}px -> {self.font_size}%")
         else:
             self.font_size = float(font_size)
 
@@ -352,9 +352,9 @@ class TextLabelDrawer:
                 font_path = system_fonts[self.config.font_name]
                 try:
                     font = ImageFont.truetype(font_path, size)
-                    print(f"✅ 加载字体: {self.config.font_name} ({font_path})")
+                    print(f"加载字体: {self.config.font_name} ({font_path})")
                 except Exception as e:
-                    print(f"⚠️ 字体加载失败 {self.config.font_name}: {e}")
+                    print(f"字体加载失败 {self.config.font_name}: {e}")
 
         # 如果没有选择字体或加载失败，使用默认字体列表
         if font is None:
@@ -377,14 +377,14 @@ class TextLabelDrawer:
                 if os.path.exists(font_path):
                     try:
                         font = ImageFont.truetype(font_path, size)
-                        print(f"✅ 加载默认字体: {font_path}")
+                        print(f"加载默认字体: {font_path}")
                         break
                     except Exception as e:
                         continue
 
         # 如果还是没有找到字体，使用 PIL 默认字体
         if font is None:
-            print("⚠️ 未找到系统字体，使用默认字体")
+            print("未找到系统字体，使用默认字体")
             font = ImageFont.load_default()
 
         self._font_cache[cache_key] = font
@@ -619,7 +619,7 @@ def draw_text_label(image, text, config: TextLabelConfig, index=None):
 
 # 测试代码
 if __name__ == "__main__":
-    print("🧪 Text Label Module 测试")
+    print("Text Label Module 测试")
 
     # 创建测试配置
     config = TextLabelConfig()
@@ -642,4 +642,4 @@ if __name__ == "__main__":
     font = drawer.get_font(36)
     print(f"\n字体加载测试: {'成功' if font else '失败'}")
 
-    print("\n✅ 模块测试完成")
+    print("\n模块测试完成")
