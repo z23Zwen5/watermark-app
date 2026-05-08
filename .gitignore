@@ -15,11 +15,13 @@ build/
 dist/
 *.spec
 
-# 应用配置文件（包含个人路径信息）
+# 应用配置文件（包含个人路径、API key 等敏感信息）
 *_config.json
-!configs/multilayer_watermark_config.json
 !configs/smart_watermark_config.json
 !configs/smart_watermark_optimized_config.json
+
+# Claude Code 运行时锁
+.claude/scheduled_tasks.lock
 
 # IDE
 .vscode/

@@ -23,11 +23,12 @@ class GenshinMessageBox(QDialog):
         self.theme = ThemeManager.get_theme()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(400, 220)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
 
         # Main Container
         self.widget = QWidget(self)
-        self.widget.setGeometry(0, 0, 400, 220)
         self.widget.setStyleSheet(f"""
             QWidget {{
                 background-color: {self.theme.bg_light};
@@ -39,6 +40,7 @@ class GenshinMessageBox(QDialog):
                 font-family: {self.theme.font_family};
             }}
         """)
+        outer.addWidget(self.widget)
 
         layout = QVBoxLayout(self.widget)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -52,6 +54,11 @@ class GenshinMessageBox(QDialog):
 
         # 3. Button Area
         self._create_button_area(layout)
+
+        # 尺寸约束：按内容自适应，min 保证美观，max 让长文本 wrap 而不是无限横向撑开
+        self.setMinimumWidth(420)
+        self.setMaximumWidth(720)
+        self.adjustSize()
 
         self._start_pos = None
 
@@ -125,7 +132,15 @@ class GenshinMessageBox(QDialog):
         # Message Text
         lbl_msg = QLabel(message)
         lbl_msg.setWordWrap(True)
-        lbl_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_msg.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        # 短消息居中、长消息/错误消息左对齐更易读
+        is_long = len(message) > 80 or "\n" in message or icon_type == "error"
+        lbl_msg.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+            if is_long else Qt.AlignmentFlag.AlignCenter
+        )
+        lbl_msg.setMinimumWidth(360)
+        lbl_msg.setMaximumWidth(640)
         lbl_msg.setStyleSheet(f"""
             color: {self.theme.text_primary};
             font-size: 14px;

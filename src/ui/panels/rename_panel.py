@@ -23,20 +23,103 @@ from ..styles.theme_base import ThemeManager
 from ..components.message_box import GenshinMessageBox
 from rename_module import (
     TONE_OPTIONS, TONE_KEY, IMAGE_EXTS,
+    PROVIDERS, PROVIDER_ORDER,
+    PAN_GREETING, DEFAULT_PROMPT_TEMPLATE,
     sort_paths, is_named_file,
     generate_and_build, save_rename_outputs,
     build_pan_message, build_spec_from_named_files,
 )
 
 
+class PromptEditDialog(QDialog):
+    """AI 命名 Prompt 编辑对话框（支持保存 / 取消 / 还原默认）"""
+
+    PLACEHOLDER_HELP = (
+        "可用占位符（调用时会自动替换）：\n"
+        "  {date} - 日期(MMDD)   {series_block} - 系列名块\n"
+        "  {lang_desc} - 副题语言说明   {theme_block} - 主题背景块\n"
+        "  {count_line} - 图片数量提示   {series_name_field} - AI取名时的JSON字段"
+    )
+
+    def __init__(self, current_template: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("编辑 AI 命名 Prompt")
+        self.resize(760, 620)
+        self.setMinimumSize(520, 400)
+        self._result_template: str | None = None  # 保存后返回的模板
+
+        theme = ThemeManager.get_theme()
+        self.setStyleSheet(theme.get_main_stylesheet())
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+
+        help_lbl = QLabel(self.PLACEHOLDER_HELP)
+        help_lbl.setStyleSheet(
+            f"color: {theme.text_secondary}; font-size: 11px; "
+            f"background: {theme.bg_input}; padding: 8px; border-radius: 4px;"
+        )
+        help_lbl.setWordWrap(True)
+        layout.addWidget(help_lbl)
+
+        self.text_edit = QTextEdit()
+        self.text_edit.setFont(QFont("Consolas", 10))
+        self.text_edit.setPlainText(current_template or DEFAULT_PROMPT_TEMPLATE)
+        layout.addWidget(self.text_edit, 1)
+
+        btn_row = QHBoxLayout()
+        self.btn_restore = QPushButton("🔄 还原默认")
+        self.btn_restore.setStyleSheet(theme.get_button_stylesheet('secondary'))
+        self.btn_restore.clicked.connect(self._on_restore)
+        btn_row.addWidget(self.btn_restore)
+
+        btn_row.addStretch()
+
+        self.btn_cancel = QPushButton("取消")
+        self.btn_cancel.setStyleSheet(theme.get_button_stylesheet('secondary'))
+        self.btn_cancel.clicked.connect(self.reject)
+        btn_row.addWidget(self.btn_cancel)
+
+        self.btn_save = QPushButton("💾 保存")
+        self.btn_save.setStyleSheet(theme.get_button_stylesheet('primary'))
+        self.btn_save.clicked.connect(self._on_save)
+        btn_row.addWidget(self.btn_save)
+
+        layout.addLayout(btn_row)
+
+    def _on_restore(self):
+        confirm = GenshinMessageBox(
+            self, "还原默认",
+            "确定将当前 Prompt 还原为初始默认模板？\n未保存的修改会丢失。",
+            "success",
+        )
+        if confirm.exec():
+            self.text_edit.setPlainText(DEFAULT_PROMPT_TEMPLATE)
+
+    def _on_save(self):
+        txt = self.text_edit.toPlainText().strip()
+        # 保存原样文本（空串 = 使用默认）；与默认相同也存为空，避免冗余
+        if not txt or txt == DEFAULT_PROMPT_TEMPLATE.strip():
+            self._result_template = ""
+        else:
+            self._result_template = self.text_edit.toPlainText()
+        self.accept()
+
+    def get_template(self) -> str | None:
+        """返回保存后的模板字符串（空串 = 使用默认）；取消时返回 None。"""
+        return self._result_template
+
+
 class PanDeliveryDialog(QDialog):
     """网盘发货信息生成对话框"""
 
-    def __init__(self, file_names: list, image_paths: list, save_folder: str, parent=None):
+    def __init__(self, file_names: list, image_paths: list, save_folder: str, config=None, parent=None):
         super().__init__(parent)
         self.file_names = file_names          # 已生成命名的文件名列表
         self.image_paths = image_paths        # 原始图片路径（用于 is_named_file 模式）
         self.save_folder = save_folder        # 规格清单.txt 所在目录
+        self.config = config
 
         self.setWindowTitle("网盘发货信息")
         self.resize(680, 560)
@@ -50,6 +133,19 @@ class PanDeliveryDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
+
+        # 问候语编辑
+        greeting_lbl = QLabel("发货问候语（每次发货信息开头）：")
+        greeting_lbl.setStyleSheet(f"color: {theme.text_secondary}; font-size: 12px;")
+        layout.addWidget(greeting_lbl)
+
+        self.greeting_edit = QTextEdit()
+        self.greeting_edit.setFixedHeight(60)
+        self.greeting_edit.setPlaceholderText(PAN_GREETING)
+        saved = self.config.pan_greeting if self.config else ""
+        self.greeting_edit.setPlainText(saved if saved else PAN_GREETING)
+        self.greeting_edit.textChanged.connect(self._on_greeting_changed)
+        layout.addWidget(self.greeting_edit)
 
         # 说明
         info_lbl = QLabel("粘贴百度网盘分享文本（每条分享之间换行分隔）：")
@@ -122,7 +218,8 @@ class PanDeliveryDialog(QDialog):
             self.status_lbl.setText("⚠ 无可用文件名（请先生成命名或选择已命名图片）")
             return
 
-        msg, unmatched = build_pan_message(file_names, pan_raw)
+        greeting = self.greeting_edit.toPlainText().strip()
+        msg, unmatched = build_pan_message(file_names, pan_raw, greeting=greeting)
         self.result_text.setPlainText(msg)
 
         if warnings:
@@ -171,6 +268,12 @@ class PanDeliveryDialog(QDialog):
             self.status_lbl.setText("已追加到 规格清单.txt ✓")
         except Exception as e:
             self.status_lbl.setText(f"写入失败: {e}")
+
+
+    def _on_greeting_changed(self):
+        if self.config:
+            self.config.pan_greeting = self.greeting_edit.toPlainText().strip()
+            self.config.save()
 
 
 class RenamePanel(QWidget):
@@ -274,19 +377,33 @@ class RenamePanel(QWidget):
         row1.addWidget(self.auto_series_chk)
         grid_lay.addLayout(row1)
 
-        # 行2：副题语言 + 模型 + API Key 折叠按钮
+        # 行2：副题语言 + Provider + Model + API Key 折叠按钮
         row2 = QHBoxLayout()
         row2.addWidget(QLabel("Tone:"))
         self.tone_combo = QComboBox()
         self.tone_combo.addItems(TONE_OPTIONS)
-        self.tone_combo.setMinimumWidth(200)
+        self.tone_combo.setMinimumWidth(180)
         row2.addWidget(self.tone_combo)
 
         row2.addSpacing(12)
+        row2.addWidget(QLabel("Provider:"))
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItems([PROVIDERS[k]["display_name"] for k in PROVIDER_ORDER])
+        self.provider_combo.setMinimumWidth(130)
+        row2.addWidget(self.provider_combo)
+
+        row2.addSpacing(8)
         row2.addWidget(QLabel("Model:"))
-        self.model_edit = QLineEdit("gemini-2.5-flash")
-        self.model_edit.setFixedWidth(160)
-        row2.addWidget(self.model_edit)
+        self.model_combo = QComboBox()
+        self.model_combo.addItems(PROVIDERS["gemini"]["models"])
+        self.model_combo.setMinimumWidth(220)
+        self.model_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        # 弹出列表额外加宽，让长 model ID / ep-xxx 完整显示
+        self.model_combo.view().setMinimumWidth(320)
+        row2.addWidget(self.model_combo)
+
+        # 在 model_combo 创建后再连接信号，避免 addItems 触发时 model_combo 尚未存在
+        self.provider_combo.currentTextChanged.connect(self._on_provider_changed)
 
         row2.addStretch()
 
@@ -298,15 +415,33 @@ class RenamePanel(QWidget):
         row2.addWidget(self.btn_apikey_toggle)
         grid_lay.addLayout(row2)
 
-        # 行3：API Key 展开区（初始折叠）
+        # 行3：主题提示词（选填）
+        row3 = QHBoxLayout()
+        hint_lbl = QLabel("Theme:")
+        hint_lbl.setStyleSheet(f"color: {self.theme.text_secondary}; font-size: 12px;")
+        row3.addWidget(hint_lbl)
+        self.theme_hint_edit = QLineEdit()
+        self.theme_hint_edit.setPlaceholderText("可选：描述主题风格/角色背景，帮助 AI 更精准输出（如：暗黑风鬼怪，主角是狐妖）")
+        row3.addWidget(self.theme_hint_edit, 1)
+
+        self.btn_edit_prompt = QPushButton("📝 Edit Prompt")
+        self.btn_edit_prompt.setFixedHeight(28)
+        self.btn_edit_prompt.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_edit_prompt.setToolTip("编辑内置的 AI 命名 Prompt 模板")
+        self.btn_edit_prompt.clicked.connect(self._on_edit_prompt)
+        self._update_edit_prompt_btn_style()
+        row3.addWidget(self.btn_edit_prompt)
+        grid_lay.addLayout(row3)
+
+        # 行4：API Key 展开区（初始折叠）
         self._api_key_widget = QWidget()
         key_lay = QHBoxLayout(self._api_key_widget)
         key_lay.setContentsMargins(0, 4, 0, 0)
         key_lay.setSpacing(6)
 
-        key_lbl = QLabel("API Key:")
-        key_lbl.setStyleSheet(f"color: {self.theme.text_secondary}; font-size: 12px;")
-        key_lay.addWidget(key_lbl)
+        self._key_lbl = QLabel("Gemini Key:")
+        self._key_lbl.setStyleSheet(f"color: {self.theme.text_secondary}; font-size: 12px;")
+        key_lay.addWidget(self._key_lbl)
 
         self.key_edit = QLineEdit()
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
@@ -326,7 +461,7 @@ class RenamePanel(QWidget):
         self.btn_save_key.clicked.connect(self._on_save_key)
         key_lay.addWidget(self.btn_save_key)
 
-        # 初始：已有 Key 则折叠，没有 Key 则展开
+        # 初始：已有 Gemini Key 则折叠，没有则展开
         self._api_key_expanded = not bool(self.config.gemini_api_key)
         self._api_key_widget.setVisible(self._api_key_expanded)
         self._update_apikey_btn_label()
@@ -380,15 +515,13 @@ class RenamePanel(QWidget):
         lay = QVBoxLayout(grp)
         lay.setSpacing(10)
 
-        # 4-tab 结果区
+        # 3-tab 结果区
         self.result_tabs = QTabWidget()
         self._tab_filenames = self._make_result_tab()
         self._tab_display = self._make_result_tab()
-        self._tab_explanations = self._make_result_tab()
         self._tab_post = self._make_result_tab()
         self.result_tabs.addTab(self._tab_filenames[0], "File Names")
         self.result_tabs.addTab(self._tab_display[0], "Display Names")
-        self.result_tabs.addTab(self._tab_explanations[0], "Explanations")
         self.result_tabs.addTab(self._tab_post[0], "Post Copy")
         self.result_tabs.setMinimumHeight(200)
         lay.addWidget(self.result_tabs)
@@ -443,10 +576,13 @@ class RenamePanel(QWidget):
 
     def _on_select_images(self):
         ext_filter = "Images (" + " ".join(f"*{e}" for e in IMAGE_EXTS) + ")"
-        files, _ = QFileDialog.getOpenFileNames(self, "Select Images", "", ext_filter)
+        init_dir = self.config.last_images_directory or os.path.expanduser("~")
+        files, _ = QFileDialog.getOpenFileNames(self, "Select Images", init_dir, ext_filter)
         if not files:
             return
         self.image_paths = sort_paths(files)
+        self.config.last_images_directory = os.path.dirname(self.image_paths[0])
+        self.config_changed.emit()
         n = len(self.image_paths)
         self.lbl_count.setText(f"{n} image{'s' if n != 1 else ''} selected")
         self.list_files.clear()
@@ -458,9 +594,18 @@ class RenamePanel(QWidget):
         self._api_key_widget.setVisible(self._api_key_expanded)
         self._update_apikey_btn_label()
 
+    def _current_provider_key(self) -> str:
+        """根据 combo 的 display_name 反查 PROVIDERS 的内部 key。"""
+        txt = self.provider_combo.currentText() if hasattr(self, 'provider_combo') else ""
+        for k in PROVIDER_ORDER:
+            if PROVIDERS[k]["display_name"] == txt:
+                return k
+        return "gemini"
+
     def _update_apikey_btn_label(self):
-        """根据 Key 状态和展开状态更新按钮文字和颜色"""
-        has_key = bool(self.config.gemini_api_key)
+        """根据当前 provider 的 Key 状态和展开状态更新按钮文字和颜色"""
+        spec = PROVIDERS[self._current_provider_key()]
+        has_key = bool(getattr(self.config, spec["key_attr"], ""))
         arrow = "▲" if self._api_key_expanded else "▼"
         if has_key:
             self.btn_apikey_toggle.setText(f"🔑 Key set {arrow}")
@@ -474,6 +619,48 @@ class RenamePanel(QWidget):
                 self.theme.get_button_stylesheet('secondary') +
                 "QPushButton { color: #FF9800; border-color: #FF9800; }"
             )
+
+    def _on_provider_changed(self, provider_text: str):
+        """切换 provider 时：更新模型列表、Key 输入框内容和标签。"""
+        spec = PROVIDERS[self._current_provider_key()]
+        self.model_combo.clear()
+        self.model_combo.setEditable(spec.get("model_editable", False))
+        self.model_combo.addItems(spec["models"])
+        self.model_combo.view().setMinimumWidth(320)
+        self._key_lbl.setText(spec["key_label"])
+        self.key_edit.setPlaceholderText(spec["key_placeholder"])
+        self.key_edit.setText(getattr(self.config, spec["key_attr"], ""))
+        # 切换后重置显示状态
+        self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.btn_toggle_key.setText("Show")
+        self._update_apikey_btn_label()
+
+    def _update_edit_prompt_btn_style(self):
+        """自定义 Prompt 时按钮高亮，否则普通样式。"""
+        is_custom = bool(self.config.custom_prompt)
+        base = self.theme.get_button_stylesheet('secondary')
+        if is_custom:
+            self.btn_edit_prompt.setText("📝 Edit Prompt *")
+            self.btn_edit_prompt.setStyleSheet(
+                base + "QPushButton { color: #4CAF50; border-color: #4CAF50; }"
+            )
+            self.btn_edit_prompt.setToolTip("当前使用自定义 Prompt（点击编辑）")
+        else:
+            self.btn_edit_prompt.setText("📝 Edit Prompt")
+            self.btn_edit_prompt.setStyleSheet(base)
+            self.btn_edit_prompt.setToolTip("编辑内置的 AI 命名 Prompt 模板")
+
+    def _on_edit_prompt(self):
+        dlg = PromptEditDialog(self.config.custom_prompt, parent=self)
+        if dlg.exec():
+            tpl = dlg.get_template()
+            if tpl is not None:
+                self.config.custom_prompt = tpl
+                self.config_changed.emit()
+                self._update_edit_prompt_btn_style()
+                self.lbl_status.setText(
+                    "Prompt saved ✓ (custom)" if tpl else "Prompt reset to default ✓"
+                )
 
     def _on_auto_series_changed(self, state):
         if state:
@@ -490,12 +677,14 @@ class RenamePanel(QWidget):
             self.btn_toggle_key.setText("Show")
 
     def _on_save_key(self):
-        self.config.gemini_api_key = self.key_edit.text().strip()
+        key = self.key_edit.text().strip()
+        spec = PROVIDERS[self._current_provider_key()]
+        setattr(self.config, spec["key_attr"], key)
         self.config_changed.emit()
         self.lbl_status.setText("API Key saved ✓")
         self._update_apikey_btn_label()
         # 保存后自动折叠
-        if self.config.gemini_api_key and self._api_key_expanded:
+        if key and self._api_key_expanded:
             self._api_key_expanded = False
             self._api_key_widget.setVisible(False)
             self._update_apikey_btn_label()
@@ -506,8 +695,9 @@ class RenamePanel(QWidget):
             dlg.exec()
             return
         api_key = self.key_edit.text().strip()
+        provider = self.provider_combo.currentText()
         if not api_key:
-            dlg = GenshinMessageBox(self, "Oops", "Please enter your Gemini API Key!", "error")
+            dlg = GenshinMessageBox(self, "Oops", f"Please enter your {provider} API Key!", "error")
             dlg.exec()
             return
         date = self.date_edit.text().strip()
@@ -523,13 +713,16 @@ class RenamePanel(QWidget):
             return
 
         self.btn_generate.setEnabled(False)
-        self.lbl_status.setText("⏳ Calling Gemini API…")
+        self.lbl_status.setText(f"⏳ Calling {provider} API…")
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)   # indeterminate
 
         tone = TONE_KEY.get(self.tone_combo.currentText(), "中文")
-        model = self.model_edit.text().strip() or "gemini-2.5-flash"
+        model = self.model_combo.currentText()
+        theme_hint = self.theme_hint_edit.text().strip()
         image_paths_copy = self.image_paths.copy()
+        provider_key = self._current_provider_key()
+        custom_prompt = self.config.custom_prompt
 
         def _worker():
             try:
@@ -541,6 +734,9 @@ class RenamePanel(QWidget):
                     tone=tone,
                     auto_series=auto_series,
                     model=model,
+                    provider=provider_key,
+                    theme_hint=theme_hint,
+                    prompt_template=custom_prompt,
                 )
                 self._generation_complete.emit(result)
             except Exception as e:
@@ -561,10 +757,9 @@ class RenamePanel(QWidget):
         outputs = result["outputs"]
         self._last_outputs = outputs
 
-        # 填充 4 个 tab
+        # 填充 3 个 tab
         self._tab_filenames[1].setPlainText("\n".join(outputs["file_names"]))
         self._tab_display[1].setPlainText("\n".join(outputs["display_names"]))
-        self._tab_explanations[1].setPlainText("\n".join(outputs["explanations"]))
         self._tab_post[1].setPlainText(outputs["post"])
 
         self._results_group.setVisible(True)
@@ -583,7 +778,8 @@ class RenamePanel(QWidget):
             dlg = GenshinMessageBox(self, "Oops", "Please generate names first!", "error")
             dlg.exec()
             return
-        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder")
+        init_dir = self._last_save_folder or self.config.save_directory or self.config.last_images_directory or ""
+        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder", init_dir)
         if not folder:
             return
         try:
@@ -592,9 +788,10 @@ class RenamePanel(QWidget):
                 image_paths=self.image_paths,
                 outputs=self._last_outputs,
                 rename_images=False,
-                save_explanation=True,
             )
             self._last_save_folder = folder
+            self.config.save_directory = folder
+            self.config_changed.emit()
             saved = ", ".join(result["txt_files"])
             dlg = GenshinMessageBox(self, "Saved", f"Files saved to {folder}:\n\n{saved}", "success")
             dlg.exec()
@@ -607,7 +804,12 @@ class RenamePanel(QWidget):
             dlg = GenshinMessageBox(self, "Oops", "Please generate names first!", "error")
             dlg.exec()
             return
-        folder = QFileDialog.getExistingDirectory(self, "Select Target Folder")
+        # 默认目标 = 源图所在目录（最常见用法：原地重命名）
+        default_dir = (
+            os.path.dirname(self.image_paths[0]) if self.image_paths
+            else (self._last_save_folder or self.config.save_directory or "")
+        )
+        folder = QFileDialog.getExistingDirectory(self, "Select Target Folder", default_dir)
         if not folder:
             return
 
@@ -627,9 +829,10 @@ class RenamePanel(QWidget):
                 image_paths=self.image_paths,
                 outputs=self._last_outputs,
                 rename_images=True,
-                save_explanation=False,
             )
             self._last_save_folder = folder
+            self.config.save_directory = folder
+            self.config_changed.emit()
             # 更新 image_paths 为重命名后的路径
             self.image_paths = [
                 os.path.join(folder, new) for _, new in result["renamed"]
@@ -664,7 +867,12 @@ class RenamePanel(QWidget):
             return
 
         # 选择保存目录
-        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder")
+        init_dir = (
+            self._last_save_folder
+            or (os.path.dirname(self.image_paths[0]) if self.image_paths else "")
+            or self.config.save_directory or ""
+        )
+        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder", init_dir)
         if not folder:
             return
 
@@ -673,6 +881,8 @@ class RenamePanel(QWidget):
             with open(spec_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(result["display_names"]))
             self._last_save_folder = folder
+            self.config.save_directory = folder
+            self.config_changed.emit()
 
             named_count = len(result["display_names"])
             total_count = len(self.image_paths)
@@ -717,6 +927,7 @@ class RenamePanel(QWidget):
             file_names=file_names,
             image_paths=self.image_paths,
             save_folder=self._last_save_folder,
+            config=self.config,
             parent=self,
         )
         dlg.exec()

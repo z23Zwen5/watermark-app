@@ -33,6 +33,41 @@ TONE_KEY = {
     "日文（和风/日式）": "日文",
 }
 
+GEMINI_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-2.0-flash",
+    "gemini-1.5-pro",
+]
+
+OPENAI_MODELS = [
+    "gpt-4.1-mini",
+    "gpt-4.1",
+    "gpt-4.1-nano",
+    "gpt-4o-mini",
+    "o4-mini",
+]
+
+CLAUDE_MODELS = [
+    "claude-sonnet-4-6",
+    "claude-opus-4-6",
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-4-5-20250514",
+]
+
+DOUBAO_MODELS = [
+    "doubao-seed-2-0-lite-260215",
+    "doubao-seed-2-0-pro-260215",
+    "doubao-seed-2-0-mini-260215",
+]
+
+QWEN_MODELS = [
+    "qwen3-vl-plus",
+    "qwen3-vl-flash",
+    "qwen-vl-max-latest",
+    "qwen-vl-plus-latest",
+]
+
 POST_TEMPLATE = """{emoji} 灵感分享 {date}｜{series}
 
 {atmosphere}
@@ -105,8 +140,8 @@ def build_spec_from_named_files(image_paths: list) -> dict | None:
     if not parsed:
         return None
 
-    # 按圆圈编号排序
-    parsed.sort(key=lambda x: x["circled_idx"] if x["circled_idx"] >= 0 else 999)
+    # 按日期优先，再按圆圈编号排序
+    parsed.sort(key=lambda x: (x["date"], x["circled_idx"] if x["circled_idx"] >= 0 else 999))
 
     date = parsed[0]["date"]
     series = parsed[0]["series"]
@@ -153,11 +188,55 @@ def sort_paths(paths: list) -> list:
 # Prompt 构建
 # ============================================================
 
-def build_prompt(date: str, series: str, tone: str, auto_series: bool = False) -> str:
+# 默认 Prompt 模板。占位符（大小写敏感）：
+#   {theme_block}, {date}, {series_block}, {lang_desc}, {count_line}, {series_name_field}
+# 用户可自定义此模板；未使用的占位符会被保留原样显示。
+DEFAULT_PROMPT_TEMPLATE = """你是星核OC店铺的创意命名助手。请根据以下角色图片为每个角色生成命名和文案。
+{theme_block}
+## 系列信息
+- 日期：{date}
+{series_block}
+- 副题语言：{lang_desc}
+{count_line}
+
+## 副题规则
+- 从角色最突出的视觉特征中提取意象
+- 禁止直白描述外观（❌ 红衣男、蓝发女、白裙、黑翼）
+- 同系列内每个副题从不同维度切入，避免同质化
+- 要有意象感和诗意，但不能空洞
+
+## 氛围文案规则（整个系列共用一段）
+- 2-4句，诗意，有画面感
+- 符合系列调性
+- 适合小红书发文
+
+## 输出
+请严格按以下JSON格式输出，不要输出任何其他内容：
+{{series_name_field}
+  "characters": [
+    {"index": 1, "subtitle": "副题"}
+  ],
+  "atmosphere": "氛围文案",
+  "emoji": "一个最匹配主题的emoji",
+  "tags": ["主题标签1", "主题标签2"]
+}
+
+图片按顺序编号，第1张图 = index 1。"""
+
+
+def build_prompt(
+    date: str,
+    series: str,
+    tone: str,
+    auto_series: bool = False,
+    theme_hint: str = "",
+    image_count: int = 0,
+    template: str | None = None,
+) -> str:
     lang_desc = {
-        "中文": "中文2字（适用于中式古风/仙侠/鬼怪系列）。示例：啖花、冥录、折枝",
-        "英文": "英文1个单词（适用于西方/现代/赛博/潮流系列）。示例：Prism、Rust、Veil",
-        "日文": "日文2-3字（适用于和风/日式系列）。示例：面影、花散里、残響",
+        "中文": "中文2字（适用于中式古风/仙侠/鬼怪系列）",
+        "英文": "英文1个单词（适用于西方/现代/赛博/潮流系列）",
+        "日文": "日文2-3字（适用于和风/日式系列）",
     }.get(tone, "中文2字")
 
     if auto_series:
@@ -168,42 +247,22 @@ def build_prompt(date: str, series: str, tone: str, auto_series: bool = False) -
         series_block = f"- 系列名：{series}"
 
     series_name_field = '\n  "series_name": "你取的系列名",' if auto_series else ""
+    theme_block = f"\n## 主题背景\n{theme_hint}\n" if theme_hint.strip() else ""
+    count_line = f"- 图片总数：**{image_count} 张**，characters 数组必须包含且仅包含 {image_count} 个条目\n" if image_count > 0 else ""
 
-    return f"""你是星核OC店铺的创意命名助手。请根据以下角色图片为每个角色生成命名和文案。
-
-## 系列信息
-- 日期：{date}
-{series_block}
-- 副题语言：{lang_desc}
-
-## 副题规则
-- 从角色最突出的视觉特征中提取意象
-- 禁止直白描述外观（❌ 红衣男、蓝发女、白裙、黑翼）
-- 同系列内每个副题从不同维度切入，避免同质化
-- 要有意象感和诗意，但不能空洞
-
-## 释义文案规则
-- 视觉元素 + 概念延伸，1-3句
-- 语感匹配系列调性（暗黑要鬼气、甜系要毒性、潮流要冲击感）
-- 简洁有力
-
-## 氛围文案规则（整个系列共用一段）
-- 2-4句，诗意，有画面感
-- 符合系列调性
-- 适合小红书发文
-
-## 输出
-请严格按以下JSON格式输出，不要输出任何其他内容：
-{{{series_name_field}
-  "characters": [
-    {{"index": 1, "subtitle": "副题", "explanation": "释义文案"}}
-  ],
-  "atmosphere": "氛围文案",
-  "emoji": "一个最匹配主题的emoji",
-  "tags": ["主题标签1", "主题标签2"]
-}}
-
-图片按顺序编号，第1张图 = index 1。"""
+    tpl = template if (template and template.strip()) else DEFAULT_PROMPT_TEMPLATE
+    substitutions = {
+        "{theme_block}": theme_block,
+        "{date}": date,
+        "{series_block}": series_block,
+        "{lang_desc}": lang_desc,
+        "{count_line}": count_line,
+        "{series_name_field}": series_name_field,
+    }
+    out = tpl
+    for k, v in substitutions.items():
+        out = out.replace(k, v)
+    return out
 
 
 # ============================================================
@@ -222,7 +281,11 @@ def call_gemini(api_key: str, model: str, prompt: str, image_paths: list) -> dic
 
     payload = {
         "contents": [{"parts": parts}],
-        "generationConfig": {"temperature": 0.75, "responseMimeType": "application/json"},
+        "generationConfig": {
+            "temperature": 0.75,
+            "responseMimeType": "application/json",
+            "maxOutputTokens": 8192,
+        },
     }
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -246,6 +309,306 @@ def call_gemini(api_key: str, model: str, prompt: str, image_paths: list) -> dic
 
 
 # ============================================================
+# OpenAI API（纯标准库，零依赖）
+# ============================================================
+
+def call_openai(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
+    """同步调用 OpenAI Chat Completions API（含视觉），返回解析后的 JSON dict。"""
+    content = [{"type": "text", "text": prompt}]
+    for p in image_paths:
+        ext = Path(p).suffix.lower()
+        mime = MIME_MAP.get(ext, "image/png")
+        with open(p, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:{mime};base64,{b64}"},
+        })
+
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": content}],
+        "temperature": 0.75,
+        "max_tokens": 8192,
+        "response_format": {"type": "json_object"},
+    }
+
+    url = "https://api.openai.com/v1/chat/completions"
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url, data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        raise RuntimeError(f"HTTP {e.code}: {body[:500]}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Network error: {e.reason}") from e
+
+    try:
+        text = result["choices"][0]["message"]["content"]
+    except (KeyError, IndexError):
+        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
+    return json.loads(text)
+
+
+# ============================================================
+# Claude (Anthropic) API（纯标准库，零依赖）
+# ============================================================
+
+def call_claude(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
+    """同步调用 Anthropic Messages API（含视觉），返回解析后的 JSON dict。"""
+    content = []
+    for p in image_paths:
+        ext = Path(p).suffix.lower()
+        mime = MIME_MAP.get(ext, "image/png")
+        with open(p, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+        content.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": mime, "data": b64},
+        })
+    content.append({"type": "text", "text": prompt})
+
+    payload = {
+        "model": model,
+        "max_tokens": 8192,
+        "messages": [{"role": "user", "content": content}],
+    }
+
+    url = "https://api.anthropic.com/v1/messages"
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url, data=data,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        raise RuntimeError(f"HTTP {e.code}: {body[:500]}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Network error: {e.reason}") from e
+
+    try:
+        text = result["content"][0]["text"]
+    except (KeyError, IndexError):
+        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
+
+    # Claude 可能会在 JSON 前后输出额外文本，提取 JSON 部分
+    text = text.strip()
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start >= 0 and end > start:
+        text = text[start:end]
+    return json.loads(text)
+
+
+# ============================================================
+# Doubao / 火山引擎 Ark API（OpenAI 兼容格式）
+# ============================================================
+
+def call_doubao(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
+    """同步调用火山引擎 Ark（豆包）Chat Completions API。
+    model 可填豆包模型 ID 或用户在控制台创建的 endpoint ID（ep-xxx）。
+    """
+    content = [{"type": "text", "text": prompt}]
+    for p in image_paths:
+        ext = Path(p).suffix.lower()
+        mime = MIME_MAP.get(ext, "image/png")
+        with open(p, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:{mime};base64,{b64}"},
+        })
+
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": content}],
+        "temperature": 0.75,
+        "max_tokens": 8192,
+    }
+
+    url = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url, data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        hint = ""
+        if e.code == 404:
+            hint = (
+                "\n\n提示：Ark 404 通常表示 model 字段对不上。请去火山控制台「在线推理 / 开通管理」"
+                "确认该模型已开通；或创建「推理接入点」，把 ep-xxxxxxxxxxxx-xxxxx "
+                "粘到 Model 下拉框里（可编辑）。"
+            )
+        raise RuntimeError(f"HTTP {e.code}: {body[:500]}{hint}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Network error: {e.reason}") from e
+
+    try:
+        text = result["choices"][0]["message"]["content"]
+    except (KeyError, IndexError):
+        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
+
+    text = text.strip()
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start >= 0 and end > start:
+        text = text[start:end]
+    return json.loads(text)
+
+
+# ============================================================
+# Qwen / 阿里云百炼 DashScope API（OpenAI 兼容格式）
+# ============================================================
+
+def call_qwen(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
+    """同步调用阿里云百炼（通义千问）DashScope OpenAI 兼容接口。"""
+    content = [{"type": "text", "text": prompt}]
+    for p in image_paths:
+        ext = Path(p).suffix.lower()
+        mime = MIME_MAP.get(ext, "image/png")
+        with open(p, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:{mime};base64,{b64}"},
+        })
+
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": content}],
+        "temperature": 0.75,
+        "max_tokens": 8192,
+        "response_format": {"type": "json_object"},
+    }
+
+    url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url, data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        raise RuntimeError(f"HTTP {e.code}: {body[:500]}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Network error: {e.reason}") from e
+
+    try:
+        text = result["choices"][0]["message"]["content"]
+    except (KeyError, IndexError):
+        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
+
+    raw = text
+    text = text.strip()
+    # 去掉 markdown 代码围栏 ```json ... ```
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1] if "\n" in text else text
+        if text.endswith("```"):
+            text = text[: -3]
+        text = text.strip()
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start >= 0 and end > start:
+        text = text[start:end]
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        snippet = raw[:400] + ("…" if len(raw) > 400 else "")
+        raise RuntimeError(
+            f"Qwen 返回内容无法解析为 JSON ({e.msg} @ char {e.pos})。\n"
+            f"原始响应开头:\n{snippet}"
+        ) from e
+
+
+# ============================================================
+# Provider 注册表 - 新增供应商在此处加一行即可
+# ============================================================
+
+PROVIDERS = {
+    "gemini": {
+        "display_name": "Gemini",
+        "models": GEMINI_MODELS,
+        "key_attr": "gemini_api_key",
+        "key_label": "Gemini Key:",
+        "key_placeholder": "AIza…",
+        "model_editable": False,
+        "call": call_gemini,
+    },
+    "openai": {
+        "display_name": "OpenAI",
+        "models": OPENAI_MODELS,
+        "key_attr": "openai_api_key",
+        "key_label": "OpenAI Key:",
+        "key_placeholder": "sk-…",
+        "model_editable": False,
+        "call": call_openai,
+    },
+    "claude": {
+        "display_name": "Claude",
+        "models": CLAUDE_MODELS,
+        "key_attr": "claude_api_key",
+        "key_label": "Claude Key:",
+        "key_placeholder": "sk-ant-…",
+        "model_editable": False,
+        "call": call_claude,
+    },
+    "doubao": {
+        "display_name": "Doubao",
+        "models": DOUBAO_MODELS,
+        "key_attr": "doubao_api_key",
+        "key_label": "Doubao Key:",
+        "key_placeholder": "火山 API Key（model 下拉可手填 ep-xxx endpoint ID 或完整模型 ID）",
+        "model_editable": True,
+        "call": call_doubao,
+    },
+    "qwen": {
+        "display_name": "Qwen",
+        "models": QWEN_MODELS,
+        "key_attr": "qwen_api_key",
+        "key_label": "Qwen Key:",
+        "key_placeholder": "阿里云百炼 sk-… (DashScope API Key)",
+        "model_editable": True,
+        "call": call_qwen,
+    },
+}
+
+PROVIDER_ORDER = ["gemini", "openai", "claude", "doubao", "qwen"]
+
+
+# ============================================================
 # 输出构建
 # ============================================================
 
@@ -264,21 +627,17 @@ def build_outputs(
 
     file_names = []
     display_names = []
-    explanations = []
 
     for i, ch in enumerate(characters):
         sub = ch.get("subtitle", "")
-        expl = ch.get("explanation", "")
         num = CIRCLED[i] if use_num and i < len(CIRCLED) else ""
 
         ext = Path(image_paths[i]).suffix if i < len(image_paths) else ".png"
         fn = sanitize(f"{date}-{series}・{num}{sub}{ext}")
         dn = f"{num} {date} | {series}・{sub}【买断有赠图】" if num else f"{date} | {series}・{sub}【买断有赠图】"
-        ep = f"> **{num}{sub}**——{expl}"
 
         file_names.append(fn)
         display_names.append(dn)
-        explanations.append(ep)
 
     tag_str = " ".join(f"#{t}" for t in ["oc", "aigc", "设子", "空壳设"] + tags)
     post = POST_TEMPLATE.format(
@@ -288,13 +647,11 @@ def build_outputs(
     combined = ""
     combined += "=== 文件命名 ===\n" + "\n".join(file_names) + "\n\n"
     combined += "=== 规格名/展示命名 ===\n" + "\n".join(display_names) + "\n\n"
-    combined += "=== 释义 ===\n" + "\n".join(explanations) + "\n\n"
     combined += "=== 小红书文案 ===\n" + post
 
     return {
         "file_names": file_names,
         "display_names": display_names,
-        "explanations": explanations,
         "post": post,
         "combined": combined,
     }
@@ -305,7 +662,6 @@ def save_rename_outputs(
     image_paths: list,
     outputs: dict,
     rename_images: bool = True,
-    save_explanation: bool = True,
 ) -> dict:
     """写入 txt 文件并重命名图片。返回 {txt_files, renamed}。"""
     txt_files = []
@@ -317,11 +673,6 @@ def save_rename_outputs(
     with open(os.path.join(folder, "规格清单.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(outputs["display_names"]))
     txt_files.append("规格清单.txt")
-
-    if save_explanation:
-        with open(os.path.join(folder, "释义.txt"), "w", encoding="utf-8") as f:
-            f.write("\n".join(outputs["explanations"]))
-        txt_files.append("释义.txt")
 
     renamed = []
     if rename_images:
@@ -350,12 +701,22 @@ def generate_and_build(
     tone: str = "中文",
     auto_series: bool = False,
     model: str = "gemini-2.5-flash",
+    provider: str = "gemini",
+    theme_hint: str = "",
+    prompt_template: str | None = None,
 ) -> dict:
-    """调 Gemini API + 构建输出，不执行文件操作。
-    返回: {series_name, characters, outputs, gemini_raw}
+    """调 API + 构建输出，不执行文件操作。
+    provider: 'gemini' | 'openai'
+    prompt_template: 可选自定义 Prompt 模板（为空则使用默认）
+    返回: {series_name, characters, outputs, raw}
     """
-    prompt = build_prompt(date, series, tone, auto_series)
-    data = call_gemini(api_key, model, prompt, image_paths)
+    prompt = build_prompt(
+        date, series, tone, auto_series, theme_hint,
+        image_count=len(image_paths),
+        template=prompt_template,
+    )
+    spec = PROVIDERS.get(provider) or PROVIDERS["gemini"]
+    data = spec["call"](api_key, model, prompt, image_paths)
 
     final_series = data.get("series_name", series) if auto_series else series
     characters = data.get("characters", [])
@@ -414,10 +775,11 @@ def _circled_index(s: str) -> int:
     return -1
 
 
-def build_pan_message(file_names: list, pan_text: str) -> tuple:
+def build_pan_message(file_names: list, pan_text: str, greeting: str = "") -> tuple:
     """匹配网盘链接到已命名文件，生成发货信息。
     返回 (完整消息文本, [未匹配的文件名])。
     """
+    greeting = greeting.strip() or PAN_GREETING
     blocks = parse_pan_links(pan_text)
     link_map = {b["filename"]: b["link_line"] for b in blocks}
 
@@ -427,23 +789,24 @@ def build_pan_message(file_names: list, pan_text: str) -> tuple:
         if fn in link_map:
             matched_files.add(fn)
             stem = Path(fn).stem
-            parts = stem.split("・", 1)
-            subtitle = parts[1] if len(parts) > 1 else stem
-            idx = _circled_index(subtitle)
+            idx = _circled_index(stem)
+            # 提取日期用于排序
+            date_part = stem[:4] if len(stem) >= 4 else ""
             entries.append({
-                "subtitle": subtitle,
+                "filename": stem,
+                "date": date_part,
                 "link_line": link_map[fn],
                 "sort_idx": idx if idx >= 0 else 999,
             })
 
-    entries.sort(key=lambda e: e["sort_idx"])
+    entries.sort(key=lambda e: (e["date"], e["sort_idx"]))
     unmatched = [fn for fn in file_names if fn not in matched_files]
 
     lines = []
     for e in entries:
-        lines.append(PAN_GREETING)
+        lines.append(greeting)
         lines.append("")
-        lines.append(e["subtitle"])
+        lines.append(e["filename"])
         lines.append(e["link_line"])
         lines.append("")
 

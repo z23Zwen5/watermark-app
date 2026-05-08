@@ -204,6 +204,12 @@ class WatermarkConfig:
         self.layers = []
         self.text_label_config = TextLabelConfig()
         self.gemini_api_key = ""
+        self.openai_api_key = ""
+        self.claude_api_key = ""
+        self.doubao_api_key = ""
+        self.qwen_api_key = ""
+        self.pan_greeting = ""
+        self.custom_prompt = ""  # 自定义 AI 命名 Prompt 模板（空=使用默认）
 
     def load(self):
         """加载配置"""
@@ -222,6 +228,12 @@ class WatermarkConfig:
                     self.output_resize_enabled = config.get('output_resize_enabled', False)
                     self.output_resize_height = config.get('output_resize_height', 1024)
                     self.gemini_api_key = config.get('gemini_api_key', "")
+                    self.openai_api_key = config.get('openai_api_key', "")
+                    self.claude_api_key = config.get('claude_api_key', "")
+                    self.doubao_api_key = config.get('doubao_api_key', "")
+                    self.qwen_api_key = config.get('qwen_api_key', "")
+                    self.pan_greeting = config.get('pan_greeting', "")
+                    self.custom_prompt = config.get('custom_prompt', "")
 
                     # 加载图层
                     self.layers = []
@@ -278,6 +290,12 @@ class WatermarkConfig:
                 'output_resize_enabled': self.output_resize_enabled,
                 'output_resize_height': self.output_resize_height,
                 'gemini_api_key': self.gemini_api_key,
+                'openai_api_key': self.openai_api_key,
+                'claude_api_key': self.claude_api_key,
+                'doubao_api_key': self.doubao_api_key,
+                'qwen_api_key': self.qwen_api_key,
+                'pan_greeting': self.pan_greeting,
+                'custom_prompt': self.custom_prompt,
                 'layers': layers_info,
                 'text_label': text_label_config.to_dict()
             }

@@ -61,6 +61,19 @@ if exist "%BUILD_DIR%" (
     rmdir /s /q "%BUILD_DIR%"
     echo [OK] 清理 build 目录
 )
+
+REM 先备份 dist 目录中的用户 config（避免清理时丢失）
+set "CONFIG_BACKUP="
+if exist "%DIST_DIR%\%APP_NAME%\_internal\configs\multilayer_watermark_config.json" (
+    set "CONFIG_BACKUP=%TEMP%\watermark_config_backup_%RANDOM%.json"
+    copy /y "%DIST_DIR%\%APP_NAME%\_internal\configs\multilayer_watermark_config.json" "!CONFIG_BACKUP!" >nul
+    echo [OK] 已备份用户 config 到 !CONFIG_BACKUP!
+) else if exist "%DIST_DIR%\%APP_NAME%\configs\multilayer_watermark_config.json" (
+    set "CONFIG_BACKUP=%TEMP%\watermark_config_backup_%RANDOM%.json"
+    copy /y "%DIST_DIR%\%APP_NAME%\configs\multilayer_watermark_config.json" "!CONFIG_BACKUP!" >nul
+    echo [OK] 已备份用户 config 到 !CONFIG_BACKUP!
+)
+
 if exist "%DIST_DIR%\%APP_NAME%" (
     rmdir /s /q "%DIST_DIR%\%APP_NAME%"
     echo [OK] 清理旧的 dist 目录
@@ -114,6 +127,7 @@ python -m PyInstaller ^
     --hidden-import=ui.styles.genshin_style ^
     --hidden-import=qtawesome ^
     --collect-all=qtawesome ^
+    --collect-all=numpy ^
     --noconfirm ^
     --clean ^
     "src\watermark_app_pyqt6_modular.py"
@@ -137,6 +151,24 @@ if exist "%DIST_DIR%\%APP_NAME%\%APP_NAME%.exe" (
     echo [ERROR] 未找到生成的 exe 文件
     pause
     exit /b 1
+)
+
+REM 还原用户 config（如果有备份）
+if defined CONFIG_BACKUP (
+    if exist "!CONFIG_BACKUP!" (
+        if exist "%DIST_DIR%\%APP_NAME%\_internal\configs" (
+            copy /y "!CONFIG_BACKUP!" "%DIST_DIR%\%APP_NAME%\_internal\configs\multilayer_watermark_config.json" >nul
+            echo [OK] 已还原用户 config 到 _internal\configs\
+        ) else if exist "%DIST_DIR%\%APP_NAME%\configs" (
+            copy /y "!CONFIG_BACKUP!" "%DIST_DIR%\%APP_NAME%\configs\multilayer_watermark_config.json" >nul
+            echo [OK] 已还原用户 config 到 configs\
+        ) else (
+            mkdir "%DIST_DIR%\%APP_NAME%\configs" >nul 2>&1
+            copy /y "!CONFIG_BACKUP!" "%DIST_DIR%\%APP_NAME%\configs\multilayer_watermark_config.json" >nul
+            echo [OK] 已创建并还原 config 到 configs\
+        )
+        del /q "!CONFIG_BACKUP!" >nul 2>&1
+    )
 )
 
 echo.
