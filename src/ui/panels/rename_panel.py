@@ -291,7 +291,6 @@ class RenamePanel(QWidget):
         self.config = config                 # WatermarkConfig 实例
         self.image_paths: list = []          # 当前选中的原图路径
         self._last_outputs: dict = {}        # 最近一次生成的 outputs dict
-        self._last_save_folder: str = ""     # 最近一次保存的目录
 
         self.theme = ThemeManager.get_theme()
         self._create_ui()
@@ -582,6 +581,9 @@ class RenamePanel(QWidget):
             return
         self.image_paths = sort_paths(files)
         self.config.last_images_directory = os.path.dirname(self.image_paths[0])
+        # 新一批图片 → 清掉上一批的命名结果，避免误用到新批次
+        self._last_outputs = {}
+        self._results_group.setVisible(False)
         self.config_changed.emit()
         n = len(self.image_paths)
         self.lbl_count.setText(f"{n} image{'s' if n != 1 else ''} selected")
@@ -773,13 +775,18 @@ class RenamePanel(QWidget):
         dlg = GenshinMessageBox(self, "API Error", f"Call failed:\n\n{err[:600]}", "error")
         dlg.exec()
 
+    def _default_target_dir(self) -> str:
+        """Save TXT / Rename / Generate Specs 共用的默认目录 —— 始终跟着当前选中的图片走。"""
+        if self.image_paths:
+            return os.path.dirname(self.image_paths[0])
+        return self.config.save_directory or self.config.last_images_directory or ""
+
     def _on_save_txt(self):
         if not self._last_outputs:
             dlg = GenshinMessageBox(self, "Oops", "Please generate names first!", "error")
             dlg.exec()
             return
-        init_dir = self._last_save_folder or self.config.save_directory or self.config.last_images_directory or ""
-        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder", init_dir)
+        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder", self._default_target_dir())
         if not folder:
             return
         try:
@@ -789,7 +796,6 @@ class RenamePanel(QWidget):
                 outputs=self._last_outputs,
                 rename_images=False,
             )
-            self._last_save_folder = folder
             self.config.save_directory = folder
             self.config_changed.emit()
             saved = ", ".join(result["txt_files"])
@@ -804,12 +810,7 @@ class RenamePanel(QWidget):
             dlg = GenshinMessageBox(self, "Oops", "Please generate names first!", "error")
             dlg.exec()
             return
-        # 默认目标 = 源图所在目录（最常见用法：原地重命名）
-        default_dir = (
-            os.path.dirname(self.image_paths[0]) if self.image_paths
-            else (self._last_save_folder or self.config.save_directory or "")
-        )
-        folder = QFileDialog.getExistingDirectory(self, "Select Target Folder", default_dir)
+        folder = QFileDialog.getExistingDirectory(self, "Select Target Folder", self._default_target_dir())
         if not folder:
             return
 
@@ -830,7 +831,6 @@ class RenamePanel(QWidget):
                 outputs=self._last_outputs,
                 rename_images=True,
             )
-            self._last_save_folder = folder
             self.config.save_directory = folder
             self.config_changed.emit()
             # 更新 image_paths 为重命名后的路径
@@ -867,12 +867,7 @@ class RenamePanel(QWidget):
             return
 
         # 选择保存目录
-        init_dir = (
-            self._last_save_folder
-            or (os.path.dirname(self.image_paths[0]) if self.image_paths else "")
-            or self.config.save_directory or ""
-        )
-        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder", init_dir)
+        folder = QFileDialog.getExistingDirectory(self, "Select Save Folder", self._default_target_dir())
         if not folder:
             return
 
@@ -880,7 +875,6 @@ class RenamePanel(QWidget):
             spec_path = os.path.join(folder, "规格清单.txt")
             with open(spec_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(result["display_names"]))
-            self._last_save_folder = folder
             self.config.save_directory = folder
             self.config_changed.emit()
 
@@ -926,7 +920,7 @@ class RenamePanel(QWidget):
         dlg = PanDeliveryDialog(
             file_names=file_names,
             image_paths=self.image_paths,
-            save_folder=self._last_save_folder,
+            save_folder=self._default_target_dir(),
             config=self.config,
             parent=self,
         )
