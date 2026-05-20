@@ -116,6 +116,34 @@ dist/
 1. **缺少资源文件** - 检查 `assets/` 目录是否完整
 2. **DLL 缺失** - 重新构建或安装 Visual C++ Redistributable
 
+### ⚠️ Python DLL 加载失败（Unicode 路径问题）
+
+**错误信息**:
+```
+Failed to load Python DLL 'E:\下载\_internal\python310.dll'.
+LoadLibrary: 找不到指定的模块。
+```
+
+**原因**: 这是 PyInstaller 的已知问题。当应用程序路径包含非 ASCII 字符（如中文、日文、韩文）时，Windows 的 `LoadLibrary` 无法正确加载 Python DLL。
+
+**解决方案**:
+
+| 方案 | 操作 | 推荐度 |
+|------|------|--------|
+| **移动到 ASCII 路径** | 将整个程序文件夹移动到只包含英文的路径，如 `C:\WatermarkApp\` 或 `D:\Apps\` | ✅ 推荐 |
+| **避免中文路径** | 不要放在「下载」「桌面」「文档」等中文名文件夹中 | ✅ 推荐 |
+| **更新 PyInstaller** | `pip install --upgrade pyinstaller` (6.0+ 版本可能有改善) | 🔄 可选 |
+
+**正确的路径示例**:
+```
+✅ C:\WatermarkApp\WatermarkApp_PyQt6_v2.1.exe
+✅ D:\Tools\WatermarkApp\WatermarkApp_PyQt6_v2.1.exe
+❌ E:\下载\WatermarkApp\WatermarkApp_PyQt6_v2.1.exe
+❌ C:\Users\用户\Desktop\WatermarkApp\...
+```
+
+**参考**: [PyInstaller Issue #1224](https://github.com/pyinstaller/pyinstaller/issues/1224), [Issue #1295](https://github.com/pyinstaller/pyinstaller/issues/1295)
+
 ---
 
 ## 分发
