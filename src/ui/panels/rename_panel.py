@@ -25,6 +25,7 @@ from rename_module import (
     TONE_OPTIONS, TONE_KEY, IMAGE_EXTS,
     PROVIDERS, PROVIDER_ORDER,
     PAN_GREETING, DEFAULT_PROMPT_TEMPLATE,
+    DEFAULT_POST_TEMPLATE, DEFAULT_POST_TAGS, parse_tag_list,
     sort_paths, is_named_file,
     generate_and_build, save_rename_outputs,
     build_pan_message, build_spec_from_named_files,
@@ -109,6 +110,107 @@ class PromptEditDialog(QDialog):
     def get_template(self) -> str | None:
         """返回保存后的模板字符串（空串 = 使用默认）；取消时返回 None。"""
         return self._result_template
+
+
+class PostTemplateEditDialog(QDialog):
+    """小红书文案模板 + 默认标签编辑对话框。"""
+
+    PLACEHOLDER_HELP = (
+        "可用占位符（生成时自动替换）：\n"
+        "  {date} - 日期(MMDD)   {series} - 系列名   {emoji} - 表情\n"
+        "  {atmosphere} - AI 生成的氛围文案   {tags} - 标签字符串（含 # 前缀）"
+    )
+
+    def __init__(self, current_template: str, current_tags: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("编辑小红书文案模板")
+        self.resize(720, 600)
+        self.setMinimumSize(520, 400)
+        self._result_template: str | None = None
+        self._result_tags: str | None = None
+
+        theme = ThemeManager.get_theme()
+        self.setStyleSheet(theme.get_main_stylesheet())
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+
+        help_lbl = QLabel(self.PLACEHOLDER_HELP)
+        help_lbl.setStyleSheet(
+            f"color: {theme.text_secondary}; font-size: 11px; "
+            f"background: {theme.bg_input}; padding: 8px; border-radius: 4px;"
+        )
+        help_lbl.setWordWrap(True)
+        layout.addWidget(help_lbl)
+
+        tpl_lbl = QLabel("文案模板：")
+        tpl_lbl.setStyleSheet(f"color: {theme.text_secondary}; font-size: 12px;")
+        layout.addWidget(tpl_lbl)
+
+        self.text_edit = QTextEdit()
+        self.text_edit.setFont(QFont("Consolas", 10))
+        self.text_edit.setPlainText(current_template or DEFAULT_POST_TEMPLATE)
+        layout.addWidget(self.text_edit, 1)
+
+        tags_lbl = QLabel("默认标签（空格 / 逗号 分隔，无需 #）：")
+        tags_lbl.setStyleSheet(f"color: {theme.text_secondary}; font-size: 12px;")
+        layout.addWidget(tags_lbl)
+
+        self.tags_edit = QLineEdit()
+        self.tags_edit.setPlaceholderText(" ".join(DEFAULT_POST_TAGS))
+        self.tags_edit.setText(current_tags or " ".join(DEFAULT_POST_TAGS))
+        layout.addWidget(self.tags_edit)
+
+        btn_row = QHBoxLayout()
+        self.btn_restore = QPushButton("还原默认")
+        self.btn_restore.setStyleSheet(theme.get_button_stylesheet('secondary'))
+        self.btn_restore.clicked.connect(self._on_restore)
+        btn_row.addWidget(self.btn_restore)
+
+        btn_row.addStretch()
+
+        self.btn_cancel = QPushButton("取消")
+        self.btn_cancel.setStyleSheet(theme.get_button_stylesheet('secondary'))
+        self.btn_cancel.clicked.connect(self.reject)
+        btn_row.addWidget(self.btn_cancel)
+
+        self.btn_save = QPushButton("保存")
+        self.btn_save.setStyleSheet(theme.get_button_stylesheet('primary'))
+        self.btn_save.clicked.connect(self._on_save)
+        btn_row.addWidget(self.btn_save)
+
+        layout.addLayout(btn_row)
+
+    def _on_restore(self):
+        confirm = GenshinMessageBox(
+            self, "还原默认",
+            "确定将文案模板和默认标签都还原为初始值？\n未保存的修改会丢失。",
+            "success",
+        )
+        if confirm.exec():
+            self.text_edit.setPlainText(DEFAULT_POST_TEMPLATE)
+            self.tags_edit.setText(" ".join(DEFAULT_POST_TAGS))
+
+    def _on_save(self):
+        tpl_raw = self.text_edit.toPlainText()
+        tags_raw = self.tags_edit.text().strip()
+        # 与默认相同则存空串，避免冗余
+        if not tpl_raw.strip() or tpl_raw.strip() == DEFAULT_POST_TEMPLATE.strip():
+            self._result_template = ""
+        else:
+            self._result_template = tpl_raw
+
+        default_tags_str = " ".join(DEFAULT_POST_TAGS)
+        if not tags_raw or parse_tag_list(tags_raw) == DEFAULT_POST_TAGS:
+            self._result_tags = ""
+        else:
+            self._result_tags = tags_raw
+        self.accept()
+
+    def get_result(self) -> tuple:
+        """返回 (template, tags)；空串表示使用默认；取消时两个都是 None。"""
+        return self._result_template, self._result_tags
 
 
 class PanDeliveryDialog(QDialog):
@@ -430,6 +532,13 @@ class RenamePanel(QWidget):
         self.btn_edit_prompt.clicked.connect(self._on_edit_prompt)
         self._update_edit_prompt_btn_style()
         row3.addWidget(self.btn_edit_prompt)
+
+        self.btn_edit_post = QPushButton("Edit Post")
+        self.btn_edit_post.setFixedHeight(28)
+        self.btn_edit_post.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_edit_post.clicked.connect(self._on_edit_post)
+        self._update_edit_post_btn_style()
+        row3.addWidget(self.btn_edit_post)
         grid_lay.addLayout(row3)
 
         # 行4：API Key 展开区（初始折叠）
@@ -669,6 +778,38 @@ class RenamePanel(QWidget):
                     "Prompt saved (custom)" if tpl else "Prompt reset to default"
                 )
 
+    def _update_edit_post_btn_style(self):
+        """自定义文案模板或标签时按钮高亮。"""
+        is_custom = bool(self.config.custom_post_template) or bool(self.config.custom_post_tags)
+        base = self.theme.get_button_stylesheet('secondary')
+        if is_custom:
+            self.btn_edit_post.setText("Edit Post *")
+            self.btn_edit_post.setStyleSheet(
+                base + "QPushButton { color: #4CAF50; border-color: #4CAF50; }"
+            )
+            self.btn_edit_post.setToolTip("当前使用自定义文案模板（点击编辑）")
+        else:
+            self.btn_edit_post.setText("Edit Post")
+            self.btn_edit_post.setStyleSheet(base)
+            self.btn_edit_post.setToolTip("编辑小红书文案模板和默认标签")
+
+    def _on_edit_post(self):
+        dlg = PostTemplateEditDialog(
+            self.config.custom_post_template,
+            self.config.custom_post_tags,
+            parent=self,
+        )
+        if dlg.exec():
+            tpl, tags = dlg.get_result()
+            if tpl is not None:
+                self.config.custom_post_template = tpl
+                self.config.custom_post_tags = tags or ""
+                self.config_changed.emit()
+                self._update_edit_post_btn_style()
+                self.lbl_status.setText(
+                    "Post template saved (custom)" if (tpl or tags) else "Post template reset to default"
+                )
+
     def _on_auto_series_changed(self, state):
         if state:
             self.series_edit.setPlaceholderText("（可选：给 AI 一个参考方向）")
@@ -730,6 +871,8 @@ class RenamePanel(QWidget):
         image_paths_copy = self.image_paths.copy()
         provider_key = self._current_provider_key()
         custom_prompt = self.config.custom_prompt
+        custom_post_template = self.config.custom_post_template
+        custom_post_tags_list = parse_tag_list(self.config.custom_post_tags) or None
 
         def _worker():
             try:
@@ -744,6 +887,8 @@ class RenamePanel(QWidget):
                     provider=provider_key,
                     theme_hint=theme_hint,
                     prompt_template=custom_prompt,
+                    post_template=custom_post_template or None,
+                    default_tags=custom_post_tags_list,
                 )
                 self._generation_complete.emit(result)
             except Exception as e:
@@ -784,7 +929,7 @@ class RenamePanel(QWidget):
         """Save TXT / Rename / Generate Specs 共用的默认目录 —— 始终跟着当前选中的图片走。"""
         if self.image_paths:
             return os.path.dirname(self.image_paths[0])
-        return self.config.save_directory or self.config.last_images_directory or ""
+        return self.config.rename_save_directory or self.config.last_images_directory or ""
 
     def _on_save_txt(self):
         if not self._last_outputs:
@@ -802,7 +947,7 @@ class RenamePanel(QWidget):
                 save_txts=True,
                 rename_images=False,
             )
-            self.config.save_directory = folder
+            self.config.rename_save_directory = folder
             self.config_changed.emit()
             saved = ", ".join(result["txt_files"])
             dlg = GenshinMessageBox(self, "Saved", f"Files saved to {folder}:\n\n{saved}", "success")
@@ -838,7 +983,7 @@ class RenamePanel(QWidget):
                 save_txts=False,
                 rename_images=True,
             )
-            self.config.save_directory = folder
+            self.config.rename_save_directory = folder
             self.config_changed.emit()
             # 更新 image_paths 为重命名后的路径
             self.image_paths = [
@@ -881,7 +1026,7 @@ class RenamePanel(QWidget):
                 save_txts=True,
                 rename_images=True,
             )
-            self.config.save_directory = folder
+            self.config.rename_save_directory = folder
             self.config_changed.emit()
             self.image_paths = [
                 os.path.join(folder, new) for _, new in result["renamed"]
@@ -926,7 +1071,7 @@ class RenamePanel(QWidget):
             spec_path = os.path.join(folder, "规格清单.txt")
             with open(spec_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(result["display_names"]))
-            self.config.save_directory = folder
+            self.config.rename_save_directory = folder
             self.config_changed.emit()
 
             named_count = len(result["display_names"])

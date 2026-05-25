@@ -193,7 +193,8 @@ class WatermarkConfig:
 
         # 配置数据
         self.last_used_directory = None
-        self.save_directory = None
+        self.save_directory = None              # 水印输出目录（output_panel 专用）
+        self.rename_save_directory = None       # AI 重命名/文案保存目录（rename_panel 专用）
         self.last_watermark_directory = None
         self.last_images_directory = None
         self.last_stretch = False
@@ -209,7 +210,9 @@ class WatermarkConfig:
         self.doubao_api_key = ""
         self.qwen_api_key = ""
         self.pan_greeting = ""
-        self.custom_prompt = ""  # 自定义 AI 命名 Prompt 模板（空=使用默认）
+        self.custom_prompt = ""       # 自定义 AI 命名 Prompt 模板（空=使用默认）
+        self.custom_post_template = ""  # 自定义小红书文案模板（空=使用默认）
+        self.custom_post_tags = ""      # 自定义默认标签（空=使用默认；用空格/逗号分隔）
 
     def load(self):
         """加载配置"""
@@ -220,6 +223,7 @@ class WatermarkConfig:
                     config = json.load(f)
                     self.last_used_directory = config.get('last_used_directory')
                     self.save_directory = config.get('save_directory')
+                    self.rename_save_directory = config.get('rename_save_directory')
                     self.last_watermark_directory = config.get('last_watermark_directory')
                     self.last_images_directory = config.get('last_images_directory')
                     self.last_stretch = config.get('last_stretch', False)
@@ -234,6 +238,8 @@ class WatermarkConfig:
                     self.qwen_api_key = config.get('qwen_api_key', "")
                     self.pan_greeting = config.get('pan_greeting', "")
                     self.custom_prompt = config.get('custom_prompt', "")
+                    self.custom_post_template = config.get('custom_post_template', "")
+                    self.custom_post_tags = config.get('custom_post_tags', "")
 
                     # 加载图层
                     self.layers = []
@@ -282,6 +288,7 @@ class WatermarkConfig:
             config = {
                 'last_used_directory': self.last_used_directory,
                 'save_directory': self.save_directory,
+                'rename_save_directory': self.rename_save_directory,
                 'last_watermark_directory': self.last_watermark_directory,
                 'last_images_directory': self.last_images_directory,
                 'last_stretch': stretch,
@@ -296,6 +303,8 @@ class WatermarkConfig:
                 'qwen_api_key': self.qwen_api_key,
                 'pan_greeting': self.pan_greeting,
                 'custom_prompt': self.custom_prompt,
+                'custom_post_template': self.custom_post_template,
+                'custom_post_tags': self.custom_post_tags,
                 'layers': layers_info,
                 'text_label': text_label_config.to_dict()
             }

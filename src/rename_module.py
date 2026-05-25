@@ -68,21 +68,71 @@ QWEN_MODELS = [
     "qwen-vl-plus-latest",
 ]
 
-POST_TEMPLATE = """{emoji} 灵感分享 {date}｜{series}
+# 文案模板。占位符（大小写敏感）：
+#   {date} - 日期(MMDD)   {series} - 系列名   {emoji} - 表情
+#   {atmosphere} - AI 生成的氛围文案   {tags} - 标签字符串（含 # 前缀，空格分隔）
+# 用户可在 Rename 面板里覆盖此模板；未识别的占位符会原样保留。
+DEFAULT_POST_TEMPLATE = """星核档案 NO.{date}｜{series} {emoji}
 
 {atmosphere}
 
-今日灵感：{series} {emoji}
-———
 📌 可蹲可拦截
 ———
-❗以上为AI生成图像设子，AI tag已标，触雷请左滑勿ky
-———
-📎设子仅供参考，不可描图、二改、垫图、融图❗
-———
+⚠️ AI生成图像设子｜AI tag已标
+📎 设子仅供参考，禁描图/二改/垫图/融图
+
 {tags}"""
 
+# 默认标签（输出为 #oc #AIGC #设子 #空壳设）。AI 返回的 tags 会追加在后面。
+DEFAULT_POST_TAGS = ["oc", "AIGC", "设子", "空壳设"]
+
+# 向后兼容旧引用名
+POST_TEMPLATE = DEFAULT_POST_TEMPLATE
+
 PAN_GREETING = "您的拦截款已送到✨ 请妈咪及时查收喔~\n感谢妈咪一直的耐心等待(/ω＼)♡"
+
+
+def parse_tag_list(raw: str) -> list:
+    """把用户输入的标签字符串解析为列表。
+    支持空格、逗号（中英文）、井号、换行任意混用作分隔符。
+    空串返回空列表（调用方应回退到 DEFAULT_POST_TAGS）。
+    """
+    if not raw or not raw.strip():
+        return []
+    cleaned = raw.replace("#", " ").replace("，", " ").replace(",", " ").replace("\n", " ")
+    return [t for t in cleaned.split() if t]
+
+
+def format_post(
+    *, date: str, series: str, emoji: str, atmosphere: str,
+    extra_tags: list = None,
+    template: str | None = None,
+    default_tags: list | None = None,
+) -> str:
+    """根据模板和标签生成小红书文案。
+
+    template:     None/空串 → 使用 DEFAULT_POST_TEMPLATE
+    default_tags: None → 使用 DEFAULT_POST_TAGS；空列表也视为「无默认」
+    extra_tags:   AI 返回的额外标签，追加在默认标签之后
+    未识别的占位符会原样保留（safe_format）。
+    """
+    tpl = template if (template and template.strip()) else DEFAULT_POST_TEMPLATE
+    base_tags = list(default_tags) if default_tags is not None else list(DEFAULT_POST_TAGS)
+    all_tags = base_tags + list(extra_tags or [])
+    tag_str = " ".join(f"#{t}" for t in all_tags)
+
+    fields = {
+        "date": date, "series": series, "emoji": emoji,
+        "atmosphere": atmosphere, "tags": tag_str,
+    }
+    try:
+        return tpl.format(**fields)
+    except KeyError:
+        # 用户写了未知占位符 → 用安全替换避免崩溃
+        out = tpl
+        for k, v in fields.items():
+            out = out.replace("{" + k + "}", str(v))
+        return out
 
 
 # ============================================================
@@ -266,60 +316,70 @@ def build_prompt(
 
 
 # ============================================================
-# Gemini API（纯标准库，零依赖）
+# Provider 调用：内部共用工具
 # ============================================================
 
-def call_gemini(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
-    """同步调用 Gemini API，返回解析后的 JSON dict。"""
-    parts = [{"text": prompt}]
-    for p in image_paths:
-        ext = Path(p).suffix.lower()
-        mime = MIME_MAP.get(ext, "image/png")
-        with open(p, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode()
-        parts.append({"inline_data": {"mime_type": mime, "data": b64}})
+def _encode_image_b64(path: str) -> tuple:
+    """读取图片返回 (mime, base64_data)。"""
+    ext = Path(path).suffix.lower()
+    mime = MIME_MAP.get(ext, "image/png")
+    with open(path, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode()
+    return mime, b64
 
-    payload = {
-        "contents": [{"parts": parts}],
-        "generationConfig": {
-            "temperature": 0.75,
-            "responseMimeType": "application/json",
-            "maxOutputTokens": 8192,
-        },
-    }
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+def _http_post_json(url: str, payload: dict, headers: dict,
+                    *, timeout: int = 180, http_error_hint_fn=None) -> dict:
+    """POST JSON 并解析响应。HTTP / 网络错误统一抛 RuntimeError。
+    http_error_hint_fn(code, body) -> str  在 HTTPError 时追加提示。
+    """
     data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-
+    req = urllib.request.Request(url, data=data, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = json.loads(resp.read())
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")
-        raise RuntimeError(f"HTTP {e.code}: {body[:500]}") from e
+        hint = http_error_hint_fn(e.code, body) if http_error_hint_fn else ""
+        raise RuntimeError(f"HTTP {e.code}: {body[:500]}{hint or ''}") from e
     except urllib.error.URLError as e:
         raise RuntimeError(f"Network error: {e.reason}") from e
 
-    try:
-        text = result["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
-        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
-    return json.loads(text)
+
+def _extract_json_block(text: str) -> str:
+    """从模型自由文本里抽出 {...} JSON 区段。
+    剥离 markdown ```json``` 围栏，截取首个 { 到最后一个 } 之间的内容。
+    输入若已是干净 JSON 则等价于 strip()。
+    """
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1] if "\n" in text else text
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start >= 0 and end > start:
+        text = text[start:end]
+    return text
 
 
-# ============================================================
-# OpenAI API（纯标准库，零依赖）
-# ============================================================
+def _call_openai_compatible(
+    api_key: str, model: str, prompt: str, image_paths: list,
+    *,
+    url: str,
+    response_format: dict = None,
+    http_error_hint_fn=None,
+    json_decode_error_fn=None,
+) -> dict:
+    """OpenAI Chat Completions 兼容协议的统一调用（openai / doubao / qwen 共用）。
 
-def call_openai(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
-    """同步调用 OpenAI Chat Completions API（含视觉），返回解析后的 JSON dict。"""
+    response_format:        传 {"type": "json_object"} 启用 JSON 模式；不支持的 provider 传 None。
+    json_decode_error_fn:   (raw_text, JSONDecodeError) -> str；返回 None 则按原异常抛。
+    """
     content = [{"type": "text", "text": prompt}]
     for p in image_paths:
-        ext = Path(p).suffix.lower()
-        mime = MIME_MAP.get(ext, "image/png")
-        with open(p, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode()
+        mime, b64 = _encode_image_b64(p)
         content.append({
             "type": "image_url",
             "image_url": {"url": f"data:{mime};base64,{b64}"},
@@ -330,47 +390,82 @@ def call_openai(api_key: str, model: str, prompt: str, image_paths: list) -> dic
         "messages": [{"role": "user", "content": content}],
         "temperature": 0.75,
         "max_tokens": 8192,
-        "response_format": {"type": "json_object"},
     }
+    if response_format is not None:
+        payload["response_format"] = response_format
 
-    url = "https://api.openai.com/v1/chat/completions"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        url, data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")
-        raise RuntimeError(f"HTTP {e.code}: {body[:500]}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Network error: {e.reason}") from e
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+    result = _http_post_json(url, payload, headers, http_error_hint_fn=http_error_hint_fn)
 
     try:
         text = result["choices"][0]["message"]["content"]
+    except (KeyError, IndexError):
+        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
+
+    raw = text
+    cleaned = _extract_json_block(text)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        if json_decode_error_fn:
+            raise RuntimeError(json_decode_error_fn(raw, e)) from e
+        raise
+
+
+# ============================================================
+# Gemini API（纯标准库，零依赖）
+# ============================================================
+
+def call_gemini(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
+    """同步调用 Gemini API，返回解析后的 JSON dict。"""
+    parts = [{"text": prompt}]
+    for p in image_paths:
+        mime, b64 = _encode_image_b64(p)
+        parts.append({"inline_data": {"mime_type": mime, "data": b64}})
+
+    payload = {
+        "contents": [{"parts": parts}],
+        "generationConfig": {
+            "temperature": 0.75,
+            "responseMimeType": "application/json",
+            "maxOutputTokens": 8192,
+        },
+    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    result = _http_post_json(url, payload, {"Content-Type": "application/json"})
+
+    try:
+        text = result["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError):
         raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
     return json.loads(text)
 
 
 # ============================================================
-# Claude (Anthropic) API（纯标准库，零依赖）
+# OpenAI API
+# ============================================================
+
+def call_openai(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
+    """同步调用 OpenAI Chat Completions API（含视觉）。"""
+    return _call_openai_compatible(
+        api_key, model, prompt, image_paths,
+        url="https://api.openai.com/v1/chat/completions",
+        response_format={"type": "json_object"},
+    )
+
+
+# ============================================================
+# Claude (Anthropic) API
 # ============================================================
 
 def call_claude(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
-    """同步调用 Anthropic Messages API（含视觉），返回解析后的 JSON dict。"""
+    """同步调用 Anthropic Messages API（含视觉）。"""
     content = []
     for p in image_paths:
-        ext = Path(p).suffix.lower()
-        mime = MIME_MAP.get(ext, "image/png")
-        with open(p, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode()
+        mime, b64 = _encode_image_b64(p)
         content.append({
             "type": "image",
             "source": {"type": "base64", "media_type": mime, "data": b64},
@@ -382,175 +477,66 @@ def call_claude(api_key: str, model: str, prompt: str, image_paths: list) -> dic
         "max_tokens": 8192,
         "messages": [{"role": "user", "content": content}],
     }
-
-    url = "https://api.anthropic.com/v1/messages"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        url, data=data,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")
-        raise RuntimeError(f"HTTP {e.code}: {body[:500]}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Network error: {e.reason}") from e
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+    }
+    result = _http_post_json("https://api.anthropic.com/v1/messages", payload, headers)
 
     try:
         text = result["content"][0]["text"]
     except (KeyError, IndexError):
         raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
-
-    # Claude 可能会在 JSON 前后输出额外文本，提取 JSON 部分
-    text = text.strip()
-    start = text.find("{")
-    end = text.rfind("}") + 1
-    if start >= 0 and end > start:
-        text = text[start:end]
-    return json.loads(text)
+    # Claude 可能会在 JSON 前后输出额外文本
+    return json.loads(_extract_json_block(text))
 
 
 # ============================================================
-# Doubao / 火山引擎 Ark API（OpenAI 兼容格式）
+# Doubao / 火山引擎 Ark API（OpenAI 兼容）
 # ============================================================
+
+def _doubao_http_hint(code: int, _body: str) -> str:
+    if code != 404:
+        return ""
+    return (
+        "\n\n提示：Ark 404 通常表示 model 字段对不上。请去火山控制台「在线推理 / 开通管理」"
+        "确认该模型已开通；或创建「推理接入点」，把 ep-xxxxxxxxxxxx-xxxxx "
+        "粘到 Model 下拉框里（可编辑）。"
+    )
+
 
 def call_doubao(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
     """同步调用火山引擎 Ark（豆包）Chat Completions API。
     model 可填豆包模型 ID 或用户在控制台创建的 endpoint ID（ep-xxx）。
     """
-    content = [{"type": "text", "text": prompt}]
-    for p in image_paths:
-        ext = Path(p).suffix.lower()
-        mime = MIME_MAP.get(ext, "image/png")
-        with open(p, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode()
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:{mime};base64,{b64}"},
-        })
-
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": content}],
-        "temperature": 0.75,
-        "max_tokens": 8192,
-    }
-
-    url = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        url, data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
+    return _call_openai_compatible(
+        api_key, model, prompt, image_paths,
+        url="https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        http_error_hint_fn=_doubao_http_hint,
     )
 
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")
-        hint = ""
-        if e.code == 404:
-            hint = (
-                "\n\n提示：Ark 404 通常表示 model 字段对不上。请去火山控制台「在线推理 / 开通管理」"
-                "确认该模型已开通；或创建「推理接入点」，把 ep-xxxxxxxxxxxx-xxxxx "
-                "粘到 Model 下拉框里（可编辑）。"
-            )
-        raise RuntimeError(f"HTTP {e.code}: {body[:500]}{hint}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Network error: {e.reason}") from e
-
-    try:
-        text = result["choices"][0]["message"]["content"]
-    except (KeyError, IndexError):
-        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
-
-    text = text.strip()
-    start = text.find("{")
-    end = text.rfind("}") + 1
-    if start >= 0 and end > start:
-        text = text[start:end]
-    return json.loads(text)
-
 
 # ============================================================
-# Qwen / 阿里云百炼 DashScope API（OpenAI 兼容格式）
+# Qwen / 阿里云百炼 DashScope API（OpenAI 兼容）
 # ============================================================
+
+def _qwen_json_decode_msg(raw: str, exc: json.JSONDecodeError) -> str:
+    snippet = raw[:400] + ("…" if len(raw) > 400 else "")
+    return (
+        f"Qwen 返回内容无法解析为 JSON ({exc.msg} @ char {exc.pos})。\n"
+        f"原始响应开头:\n{snippet}"
+    )
+
 
 def call_qwen(api_key: str, model: str, prompt: str, image_paths: list) -> dict:
     """同步调用阿里云百炼（通义千问）DashScope OpenAI 兼容接口。"""
-    content = [{"type": "text", "text": prompt}]
-    for p in image_paths:
-        ext = Path(p).suffix.lower()
-        mime = MIME_MAP.get(ext, "image/png")
-        with open(p, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode()
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:{mime};base64,{b64}"},
-        })
-
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": content}],
-        "temperature": 0.75,
-        "max_tokens": 8192,
-        "response_format": {"type": "json_object"},
-    }
-
-    url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        url, data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
+    return _call_openai_compatible(
+        api_key, model, prompt, image_paths,
+        url="https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        response_format={"type": "json_object"},
+        json_decode_error_fn=_qwen_json_decode_msg,
     )
-
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode(errors="replace")
-        raise RuntimeError(f"HTTP {e.code}: {body[:500]}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Network error: {e.reason}") from e
-
-    try:
-        text = result["choices"][0]["message"]["content"]
-    except (KeyError, IndexError):
-        raise RuntimeError(f"Unexpected response: {json.dumps(result, ensure_ascii=False)[:500]}")
-
-    raw = text
-    text = text.strip()
-    # 去掉 markdown 代码围栏 ```json ... ```
-    if text.startswith("```"):
-        text = text.split("\n", 1)[-1] if "\n" in text else text
-        if text.endswith("```"):
-            text = text[: -3]
-        text = text.strip()
-    start = text.find("{")
-    end = text.rfind("}") + 1
-    if start >= 0 and end > start:
-        text = text[start:end]
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as e:
-        snippet = raw[:400] + ("…" if len(raw) > 400 else "")
-        raise RuntimeError(
-            f"Qwen 返回内容无法解析为 JSON ({e.msg} @ char {e.pos})。\n"
-            f"原始响应开头:\n{snippet}"
-        ) from e
 
 
 # ============================================================
@@ -620,9 +606,13 @@ def build_outputs(
     atmosphere: str = "",
     emoji: str = "✨",
     tags: list = None,
+    post_template: str | None = None,
+    default_tags: list | None = None,
 ) -> dict:
-    """根据 Gemini 返回数据构建全部输出。"""
-    tags = tags or []
+    """根据 Gemini 返回数据构建全部输出。
+
+    post_template / default_tags: 见 format_post。空 / None 则回退到内置默认。
+    """
     use_num = len(characters) > 1
 
     file_names = []
@@ -639,9 +629,11 @@ def build_outputs(
         file_names.append(fn)
         display_names.append(dn)
 
-    tag_str = " ".join(f"#{t}" for t in ["oc", "aigc", "设子", "空壳设"] + tags)
-    post = POST_TEMPLATE.format(
-        emoji=emoji, date=date, series=series, atmosphere=atmosphere, tags=tag_str
+    post = format_post(
+        date=date, series=series, emoji=emoji, atmosphere=atmosphere,
+        extra_tags=tags or [],
+        template=post_template,
+        default_tags=default_tags,
     )
 
     combined = ""
@@ -711,10 +703,14 @@ def generate_and_build(
     provider: str = "gemini",
     theme_hint: str = "",
     prompt_template: str | None = None,
+    post_template: str | None = None,
+    default_tags: list | None = None,
 ) -> dict:
     """调 API + 构建输出，不执行文件操作。
     provider: 'gemini' | 'openai'
-    prompt_template: 可选自定义 Prompt 模板（为空则使用默认）
+    prompt_template: 可选自定义 AI 命名 Prompt 模板（空 → 默认）
+    post_template:   可选自定义小红书文案模板（空 → DEFAULT_POST_TEMPLATE）
+    default_tags:    可选自定义默认标签列表（None → DEFAULT_POST_TAGS）
     返回: {series_name, characters, outputs, raw}
     """
     prompt = build_prompt(
@@ -736,6 +732,8 @@ def generate_and_build(
         atmosphere=data.get("atmosphere", ""),
         emoji=data.get("emoji", "✨"),
         tags=data.get("tags", []),
+        post_template=post_template,
+        default_tags=default_tags,
     )
 
     return {
