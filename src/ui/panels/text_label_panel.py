@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QCheckBox,
     QComboBox, QSlider, QLabel, QGroupBox, QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal
 from text_label_module import get_system_fonts, scan_fonts_async
 
 
@@ -17,10 +17,13 @@ class TextLabelPanel(QWidget):
 
     # 信号
     config_changed = pyqtSignal(dict)  # 完整的配置字典
+    fonts_loaded = pyqtSignal(dict)    # 后台字体扫描完成（跨线程投递到主线程）
 
     def __init__(self, text_label_config, parent=None):
         super().__init__(parent)
         self.text_label_config = text_label_config
+        # 后台线程扫描完成后，通过信号投递到主线程更新 UI
+        self.fonts_loaded.connect(self._update_font_list)
         self._create_ui()
 
     def _create_ui(self):
@@ -139,9 +142,13 @@ class TextLabelPanel(QWidget):
         self.config_changed.emit(self.text_label_config.to_dict())
 
     def _on_fonts_loaded(self, fonts_dict):
-        """字体加载完成回调（从后台线程调用）"""
-        # 使用 QTimer 在主线程更新 UI
-        QTimer.singleShot(0, lambda: self._update_font_list(fonts_dict))
+        """字体加载完成回调（从后台线程调用）
+
+        不能在后台线程直接操作 UI，也不能用 QTimer（定时器属于无事件循环的
+        后台线程，回调不会触发）。改为发射信号，Qt 自动以 queued connection
+        将其投递到主线程执行。
+        """
+        self.fonts_loaded.emit(fonts_dict)
 
     def _update_font_list(self, fonts_dict):
         """更新字体列表（在主线程）"""

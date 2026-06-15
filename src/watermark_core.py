@@ -6,10 +6,32 @@ Watermark Core - Business Logic
 """
 
 import os
+import sys
 import json
+import shutil
+import platform
 import numpy as np
 from PIL import Image
 from text_label_module import TextLabelConfig, draw_text_label
+
+
+def get_user_config_dir():
+    """返回用户级持久化配置目录（独立于程序安装/打包目录）
+
+    Windows: %APPDATA%\\WatermarkApp
+    macOS:   ~/Library/Application Support/WatermarkApp
+    Linux:   ~/.config/WatermarkApp
+
+    这样无论怎么重新 build / 删除 dist，配置都不会丢失。
+    """
+    system = platform.system()
+    if system == 'Windows':
+        base = os.environ.get('APPDATA') or os.path.expanduser('~')
+    elif system == 'Darwin':
+        base = os.path.expanduser('~/Library/Application Support')
+    else:
+        base = os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config')
+    return os.path.join(base, 'WatermarkApp')
 
 
 class WatermarkLayer:
@@ -186,10 +208,16 @@ class WatermarkEngine:
 class WatermarkConfig:
     """水印配置管理"""
 
-    def __init__(self, config_dir="configs", config_file="multilayer_watermark_config.json"):
+    def __init__(self, config_dir=None, config_file="multilayer_watermark_config.json"):
+        # 默认使用用户级持久化目录（独立于打包/安装目录，rebuild 不丢失）
+        if config_dir is None:
+            config_dir = get_user_config_dir()
         self.config_dir = config_dir
         self.config_file = config_file
         os.makedirs(config_dir, exist_ok=True)
+
+        # 首次运行：若用户级目录还没有配置，从旧位置自动迁移
+        self._migrate_legacy_config()
 
         # 配置数据
         self.last_used_directory = None
@@ -213,6 +241,29 @@ class WatermarkConfig:
         self.custom_prompt = ""       # 自定义 AI 命名 Prompt 模板（空=使用默认）
         self.custom_post_template = ""  # 自定义小红书文案模板（空=使用默认）
         self.custom_post_tags = ""      # 自定义默认标签（空=使用默认；用空格/逗号分隔）
+
+    def _migrate_legacy_config(self):
+        """首次运行时，把旧位置的配置迁移到用户级目录（仅当目标不存在时）"""
+        target = os.path.join(self.config_dir, self.config_file)
+        if os.path.exists(target):
+            return  # 已有用户级配置，无需迁移
+
+        # 候选旧位置（按优先级）：exe 同级 configs/、_internal/configs/、当前工作目录 configs/
+        candidates = []
+        if getattr(sys, 'frozen', False):
+            exe_dir = os.path.dirname(sys.executable)
+            candidates.append(os.path.join(exe_dir, 'configs', self.config_file))
+            candidates.append(os.path.join(exe_dir, '_internal', 'configs', self.config_file))
+        candidates.append(os.path.join('configs', self.config_file))
+
+        for legacy in candidates:
+            try:
+                if os.path.exists(legacy) and os.path.abspath(legacy) != os.path.abspath(target):
+                    shutil.copy2(legacy, target)
+                    print(f"已迁移旧配置: {legacy} -> {target}")
+                    return
+            except Exception as e:
+                print(f"迁移配置失败 {legacy}: {e}")
 
     def load(self):
         """加载配置"""
