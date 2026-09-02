@@ -794,6 +794,13 @@ def _resolve_atmosphere(raw, mode: str) -> str:
     return text
 
 
+def can_build_offline(use_filename_as_name: bool, atmosphere_mode: str, auto_series: bool) -> bool:
+    """三个条件同时满足时，AI 能决定的只剩标题 emoji 和附加标签，无需调 API：
+    角色名沿用文件名 + 文案留空 + 系列名手动填写。
+    """
+    return bool(use_filename_as_name) and atmosphere_mode == "none" and not auto_series
+
+
 def generate_and_build(
     api_key: str,
     image_paths: list,
@@ -817,11 +824,32 @@ def generate_and_build(
     default_tags:    可选自定义默认标签列表（None → DEFAULT_POST_TAGS）
     use_filename_as_name: True 时沿用图片文件名作为角色名（副题），AI 只负责系列名/文案/标签
     atmosphere_mode: 'atmosphere' 氛围文案 | 'elements' 本期元素关键词行 | 'none' 留空
-    返回: {series_name, characters, outputs, raw}
+    返回: {series_name, characters, outputs, raw, offline}
+    offline=True 表示满足 can_build_offline 条件，本地直接生成、未调 API（api_key 可为空）。
     """
     character_names = (
         [character_name_from_path(p) for p in image_paths] if use_filename_as_name else None
     )
+
+    if can_build_offline(use_filename_as_name, atmosphere_mode, auto_series):
+        characters = [{"index": i + 1, "subtitle": n} for i, n in enumerate(character_names)]
+        outputs = build_outputs(
+            date=date,
+            series=series,
+            characters=characters,
+            image_paths=image_paths,
+            atmosphere="",
+            post_template=post_template,
+            default_tags=default_tags,
+        )
+        return {
+            "series_name": series,
+            "characters": characters,
+            "outputs": outputs,
+            "gemini_raw": {},
+            "offline": True,
+        }
+
     prompt = build_prompt(
         date, series, tone, auto_series, theme_hint,
         image_count=len(image_paths),
@@ -863,6 +891,7 @@ def generate_and_build(
         "characters": characters,
         "outputs": outputs,
         "gemini_raw": data,
+        "offline": False,
     }
 
 

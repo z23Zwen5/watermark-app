@@ -22,7 +22,7 @@ import qtawesome as qta
 from ..styles.theme_base import ThemeManager
 from ..components.message_box import GenshinMessageBox
 from rename_module import (
-    ATMOSPHERE_MODE_OPTIONS, ATMOSPHERE_MODE_KEY,
+    ATMOSPHERE_MODE_OPTIONS, ATMOSPHERE_MODE_KEY, can_build_offline,
     TONE_OPTIONS, TONE_KEY, IMAGE_EXTS,
     PROVIDERS, PROVIDER_ORDER,
     PAN_GREETING, DEFAULT_PROMPT_TEMPLATE,
@@ -890,7 +890,12 @@ class RenamePanel(QWidget):
             return
         api_key = self.key_edit.text().strip()
         provider = self.provider_combo.currentText()
-        if not api_key:
+        use_filename_as_name = self.use_filename_chk.isChecked()
+        atmosphere_mode = self._current_atmosphere_mode()
+        auto_series = self.auto_series_chk.isChecked()
+        # 角色名沿用文件名 + 文案留空 + 手动系列名 → 本地生成，不需要 API Key
+        offline = can_build_offline(use_filename_as_name, atmosphere_mode, auto_series)
+        if not api_key and not offline:
             dlg = GenshinMessageBox(self, "Oops", f"Please enter your {provider} API Key!", "error")
             dlg.exec()
             return
@@ -900,14 +905,13 @@ class RenamePanel(QWidget):
             dlg.exec()
             return
         series = self.series_edit.text().strip()
-        auto_series = self.auto_series_chk.isChecked()
         if not auto_series and not series:
             dlg = GenshinMessageBox(self, "Oops", "Please enter a series name or enable AI naming!", "error")
             dlg.exec()
             return
 
         self.btn_generate.setEnabled(False)
-        self.lbl_status.setText(f"Calling {provider} API…")
+        self.lbl_status.setText("Building locally (no API call)…" if offline else f"Calling {provider} API…")
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)   # indeterminate
 
@@ -919,8 +923,6 @@ class RenamePanel(QWidget):
         custom_prompt = self.config.custom_prompt
         custom_post_template = self.config.custom_post_template
         custom_post_tags_list = parse_tag_list(self.config.custom_post_tags) or None
-        use_filename_as_name = self.use_filename_chk.isChecked()
-        atmosphere_mode = self._current_atmosphere_mode()
 
         def _worker():
             try:
@@ -965,7 +967,12 @@ class RenamePanel(QWidget):
         self._tab_post[1].setPlainText(outputs["post"])
 
         self._results_group.setVisible(True)
-        suffix = " (角色名沿用文件名)" if self.use_filename_chk.isChecked() else ""
+        if result.get("offline"):
+            suffix = " (本地生成，未调用 API)"
+        elif self.use_filename_chk.isChecked():
+            suffix = " (角色名沿用文件名)"
+        else:
+            suffix = ""
         self.lbl_status.setText(f"Done. Generated {len(outputs['file_names'])} names.{suffix}")
 
     def _on_generation_error(self, err: str):
