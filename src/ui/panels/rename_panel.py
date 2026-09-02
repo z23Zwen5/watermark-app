@@ -22,6 +22,7 @@ import qtawesome as qta
 from ..styles.theme_base import ThemeManager
 from ..components.message_box import GenshinMessageBox
 from rename_module import (
+    ATMOSPHERE_MODE_OPTIONS, ATMOSPHERE_MODE_KEY,
     TONE_OPTIONS, TONE_KEY, IMAGE_EXTS,
     PROVIDERS, PROVIDER_ORDER,
     PAN_GREETING, DEFAULT_PROMPT_TEMPLATE,
@@ -39,7 +40,9 @@ class PromptEditDialog(QDialog):
         "可用占位符（调用时会自动替换）：\n"
         "  {date} - 日期(MMDD)   {series_block} - 系列名块\n"
         "  {lang_desc} - 副题语言说明   {theme_block} - 主题背景块\n"
-        "  {count_line} - 图片数量提示   {series_name_field} - AI取名时的JSON字段"
+        "  {count_line} - 图片数量提示   {series_name_field} - AI取名时的JSON字段\n"
+        "  {names_block} - 「沿用文件名作角色名」开启时的角色名块（模板缺省时自动追加到末尾）\n"
+        "  {atmosphere_rules} - 文案模式对应的规则块   {atmosphere_field} - 对应的JSON字段行"
     )
 
     def __init__(self, current_template: str, parent=None):
@@ -118,7 +121,8 @@ class PostTemplateEditDialog(QDialog):
     PLACEHOLDER_HELP = (
         "可用占位符（生成时自动替换）：\n"
         "  {date} - 日期(MMDD)   {series} - 系列名   {emoji} - 表情\n"
-        "  {atmosphere} - AI 生成的氛围文案   {tags} - 标签字符串（含 # 前缀）"
+        "  {atmosphere} - 氛围文案 / 本期元素（随「Copy」下拉切换，留空时自动折叠空行）\n"
+        "  {tags} - 标签字符串（含 # 前缀）"
     )
 
     def __init__(self, current_template: str, current_tags: str, parent=None):
@@ -476,6 +480,17 @@ class RenamePanel(QWidget):
         self.auto_series_chk = QCheckBox("AI取系列名")
         self.auto_series_chk.stateChanged.connect(self._on_auto_series_changed)
         row1.addWidget(self.auto_series_chk)
+
+        # 沿用文件名作角色名：开启后副题直接取图片文件名，AI 只负责系列名/文案/标签
+        self.use_filename_chk = QCheckBox("沿用文件名作角色名")
+        self.use_filename_chk.setToolTip(
+            "开启后，每张图的角色名（副题）直接使用图片文件名（去扩展名），\n"
+            "AI 不再另取副题，只负责系列名、氛围文案和标签。\n"
+            "已按 MMDD-系列・副题 命名的文件会自动取其中的副题。"
+        )
+        self.use_filename_chk.setChecked(bool(getattr(self.config, "rename_use_filename_as_name", False)))
+        self.use_filename_chk.stateChanged.connect(self._on_use_filename_changed)
+        row1.addWidget(self.use_filename_chk)
         grid_lay.addLayout(row1)
 
         # 行2：副题语言 + Provider + Model + API Key 折叠按钮
@@ -485,6 +500,25 @@ class RenamePanel(QWidget):
         self.tone_combo.addItems(TONE_OPTIONS)
         self.tone_combo.setMinimumWidth(180)
         row2.addWidget(self.tone_combo)
+
+        # 文案模式：{atmosphere} 位置输出 氛围文案 / 本期元素 / 留空
+        row2.addSpacing(12)
+        row2.addWidget(QLabel("Copy:"))
+        self.atmosphere_combo = QComboBox()
+        self.atmosphere_combo.addItems(ATMOSPHERE_MODE_OPTIONS)
+        self.atmosphere_combo.setToolTip(
+            "小红书文案中 {atmosphere} 位置的内容：\n"
+            "氛围文案 - AI 写 2-4 句诗意文案（默认）\n"
+            "本期元素 - AI 概括「本期元素：xxx、xxx」关键词行\n"
+            "留空 - 不生成，该段自动省略"
+        )
+        saved_mode = getattr(self.config, "rename_atmosphere_mode", "atmosphere")
+        for label, key in ATMOSPHERE_MODE_KEY.items():
+            if key == saved_mode:
+                self.atmosphere_combo.setCurrentText(label)
+                break
+        self.atmosphere_combo.currentTextChanged.connect(self._on_atmosphere_mode_changed)
+        row2.addWidget(self.atmosphere_combo)
 
         row2.addSpacing(12)
         row2.addWidget(QLabel("Provider:"))
@@ -816,6 +850,18 @@ class RenamePanel(QWidget):
         else:
             self.series_edit.setPlaceholderText("系列名")
 
+    def _current_atmosphere_mode(self) -> str:
+        return ATMOSPHERE_MODE_KEY.get(self.atmosphere_combo.currentText(), "atmosphere")
+
+    def _on_atmosphere_mode_changed(self, _text):
+        self.config.rename_atmosphere_mode = self._current_atmosphere_mode()
+        self.config_changed.emit()
+
+    def _on_use_filename_changed(self, state):
+        self.config.rename_use_filename_as_name = bool(state)
+        self.config_changed.emit()
+        self.lbl_status.setText("角色名将沿用图片文件名" if state else "角色名由 AI 生成")
+
     def _on_toggle_key_visibility(self):
         if self.key_edit.echoMode() == QLineEdit.EchoMode.Password:
             self.key_edit.setEchoMode(QLineEdit.EchoMode.Normal)
@@ -873,6 +919,8 @@ class RenamePanel(QWidget):
         custom_prompt = self.config.custom_prompt
         custom_post_template = self.config.custom_post_template
         custom_post_tags_list = parse_tag_list(self.config.custom_post_tags) or None
+        use_filename_as_name = self.use_filename_chk.isChecked()
+        atmosphere_mode = self._current_atmosphere_mode()
 
         def _worker():
             try:
@@ -889,6 +937,8 @@ class RenamePanel(QWidget):
                     prompt_template=custom_prompt,
                     post_template=custom_post_template or None,
                     default_tags=custom_post_tags_list,
+                    use_filename_as_name=use_filename_as_name,
+                    atmosphere_mode=atmosphere_mode,
                 )
                 self._generation_complete.emit(result)
             except Exception as e:
@@ -915,7 +965,8 @@ class RenamePanel(QWidget):
         self._tab_post[1].setPlainText(outputs["post"])
 
         self._results_group.setVisible(True)
-        self.lbl_status.setText(f"Done. Generated {len(outputs['file_names'])} names.")
+        suffix = " (角色名沿用文件名)" if self.use_filename_chk.isChecked() else ""
+        self.lbl_status.setText(f"Done. Generated {len(outputs['file_names'])} names.{suffix}")
 
     def _on_generation_error(self, err: str):
         self.btn_generate.setEnabled(True)
@@ -930,6 +981,27 @@ class RenamePanel(QWidget):
         if self.image_paths:
             return os.path.dirname(self.image_paths[0])
         return self.config.rename_save_directory or self.config.last_images_directory or ""
+
+    def _build_rename_confirm_msg(self, target_folder: str, action: str) -> str:
+        """Confirm Rename / Save & Rename 弹窗的正文。
+        显式列出目标目录，并在源/目标目录不同时提示「文件会被移动」，避免误把上一批的目录用上。
+        """
+        source_dirs = {os.path.dirname(p) for p in self.image_paths if p}
+        cross_folder = bool(source_dirs) and any(d != target_folder for d in source_dirs)
+
+        header = "Will save TXT files and rename:" if action == "save_rename" else "Will rename the following files:"
+        lines = [header, "", f"Target folder:  {target_folder}"]
+        if cross_folder:
+            # 跨目录 = os.rename 会把文件物理移动过去
+            src_summary = next(iter(source_dirs)) if len(source_dirs) == 1 else f"{len(source_dirs)} folders"
+            lines.append(f"Source folder:  {src_summary}")
+            lines.append("[!] Files will be MOVED to the target folder (cross-folder rename).")
+        lines.append("")
+
+        for i, p in enumerate(self.image_paths):
+            if i < len(self._last_outputs["file_names"]):
+                lines.append(f"{os.path.basename(p)}  ->  {self._last_outputs['file_names'][i]}")
+        return "\n".join(lines)
 
     def _on_save_txt(self):
         if not self._last_outputs:
@@ -965,12 +1037,7 @@ class RenamePanel(QWidget):
         if not folder:
             return
 
-        # 构建确认提示
-        lines = ["Will rename the following files:\n"]
-        for i, p in enumerate(self.image_paths):
-            if i < len(self._last_outputs["file_names"]):
-                lines.append(f"{os.path.basename(p)}  →  {self._last_outputs['file_names'][i]}")
-        confirm_msg = "\n".join(lines)
+        confirm_msg = self._build_rename_confirm_msg(folder, "rename")
         dlg_confirm = GenshinMessageBox(self, "Confirm Rename", confirm_msg, "success")
         if not dlg_confirm.exec():
             return
@@ -1010,11 +1077,8 @@ class RenamePanel(QWidget):
         if not folder:
             return
 
-        lines = ["Will save TXT files and rename:\n"]
-        for i, p in enumerate(self.image_paths):
-            if i < len(self._last_outputs["file_names"]):
-                lines.append(f"{os.path.basename(p)}  ->  {self._last_outputs['file_names'][i]}")
-        dlg_confirm = GenshinMessageBox(self, "Confirm Save & Rename", "\n".join(lines), "success")
+        confirm_msg = self._build_rename_confirm_msg(folder, "save_rename")
+        dlg_confirm = GenshinMessageBox(self, "Confirm Save & Rename", confirm_msg, "success")
         if not dlg_confirm.exec():
             return
 

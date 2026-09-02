@@ -89,7 +89,19 @@ DEFAULT_POST_TAGS = ["oc", "AIGC", "设子", "空壳设"]
 # 向后兼容旧引用名
 POST_TEMPLATE = DEFAULT_POST_TEMPLATE
 
-PAN_GREETING = "您的拦截款已送到✨ 请妈咪及时查收喔~\n感谢妈咪一直的耐心等待(/ω＼)♡"
+# 小红书文案中 {atmosphere} 位置的内容模式
+#   atmosphere - AI 写 2-4 句氛围文案（默认）
+#   elements   - AI 概括「本期元素：xxx、xxx」关键词行
+#   none       - 留空，不向 AI 索要该字段
+ATMOSPHERE_MODE_OPTIONS = ["氛围文案", "本期元素", "留空"]
+ATMOSPHERE_MODE_KEY = {
+    "氛围文案": "atmosphere",
+    "本期元素": "elements",
+    "留空": "none",
+}
+ELEMENTS_PREFIX = "本期元素："
+
+PAN_GREETING = "您的拦截款已送到 请妈咪及时查收喔~\n感谢妈咪一直的耐心等待(/ω＼)♡"
 
 
 def parse_tag_list(raw: str) -> list:
@@ -126,13 +138,16 @@ def format_post(
         "atmosphere": atmosphere, "tags": tag_str,
     }
     try:
-        return tpl.format(**fields)
+        out = tpl.format(**fields)
     except KeyError:
         # 用户写了未知占位符 → 用安全替换避免崩溃
         out = tpl
         for k, v in fields.items():
             out = out.replace("{" + k + "}", str(v))
-        return out
+    if not atmosphere.strip():
+        # 氛围文案留空时，把留下的连续空行折叠成一个空行
+        out = re.sub(r"\n{3,}", "\n\n", out)
+    return out
 
 
 # ============================================================
@@ -212,6 +227,18 @@ def build_spec_from_named_files(image_paths: list) -> dict | None:
     return {"display_names": display_names, "date": date, "series": series}
 
 
+def character_name_from_path(path: str) -> str:
+    """从图片文件名中提取「角色名」，供「沿用文件名作角色名」开关使用。
+
+    - 已符合 MMDD-系列・副题 格式的文件 → 取解析出的副题（去掉圆圈序号）
+    - 其他文件 → 直接取文件名主干（去扩展名）
+    """
+    info = parse_named_file(path)
+    if info and info["subtitle"].strip():
+        return info["subtitle"].strip()
+    return Path(path).stem.strip()
+
+
 def sanitize(name: str) -> str:
     return re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", name)
 
@@ -239,35 +266,35 @@ def sort_paths(paths: list) -> list:
 # ============================================================
 
 # 默认 Prompt 模板。占位符（大小写敏感）：
-#   {theme_block}, {date}, {series_block}, {lang_desc}, {count_line}, {series_name_field}
+#   {theme_block}, {date}, {series_block}, {lang_desc}, {count_line}, {series_name_field}, {names_block},
+#   {atmosphere_rules}, {atmosphere_field}
 # 用户可自定义此模板；未使用的占位符会被保留原样显示。
+# 注意：{atmosphere_rules} 若未出现在自定义模板中，而文案模式不是「氛围文案」，
+#       build_prompt 会在末尾追加覆盖说明，让 AI 按新模式输出 atmosphere 字段。
+# 注意：{names_block} 若未出现在自定义模板中，而用户又开启了「沿用文件名作角色名」，
+#       build_prompt 会把角色名块自动追加到 prompt 末尾，保证 AI 一定能看到。
 DEFAULT_PROMPT_TEMPLATE = """你是星核OC店铺的创意命名助手。请根据以下角色图片为每个角色生成命名和文案。
 {theme_block}
 ## 系列信息
 - 日期：{date}
 {series_block}
 - 副题语言：{lang_desc}
-{count_line}
+{count_line}{names_block}
 
 ## 副题规则
 - 从角色最突出的视觉特征中提取意象
-- 禁止直白描述外观（❌ 红衣男、蓝发女、白裙、黑翼）
+- 禁止直白描述外观（如：红衣男、蓝发女、白裙、黑翼）
 - 同系列内每个副题从不同维度切入，避免同质化
 - 要有意象感和诗意，但不能空洞
 
-## 氛围文案规则（整个系列共用一段）
-- 2-4句，诗意，有画面感
-- 符合系列调性
-- 适合小红书发文
-
+{atmosphere_rules}
 ## 输出
 请严格按以下JSON格式输出，不要输出任何其他内容：
 {{series_name_field}
   "characters": [
     {"index": 1, "subtitle": "副题"}
   ],
-  "atmosphere": "氛围文案",
-  "emoji": "一个最匹配主题的emoji",
+{atmosphere_field}  "emoji": "一个最匹配主题的emoji",
   "tags": ["主题标签1", "主题标签2"]
 }
 
@@ -282,7 +309,12 @@ def build_prompt(
     theme_hint: str = "",
     image_count: int = 0,
     template: str | None = None,
+    character_names: list | None = None,
+    atmosphere_mode: str = "atmosphere",
 ) -> str:
+    """character_names: 用户指定的角色名列表（按图片顺序）。非空时告知 AI 直接沿用，不再另取副题。
+    atmosphere_mode:  'atmosphere' | 'elements' | 'none'，见 ATMOSPHERE_MODE_KEY。
+    """
     lang_desc = {
         "中文": "中文2字（适用于中式古风/仙侠/鬼怪系列）",
         "英文": "英文1个单词（适用于西方/现代/赛博/潮流系列）",
@@ -300,6 +332,48 @@ def build_prompt(
     theme_block = f"\n## 主题背景\n{theme_hint}\n" if theme_hint.strip() else ""
     count_line = f"- 图片总数：**{image_count} 张**，characters 数组必须包含且仅包含 {image_count} 个条目\n" if image_count > 0 else ""
 
+    if atmosphere_mode == "elements":
+        atmosphere_rules = (
+            "## 本期元素规则（整个系列共用一行）\n"
+            "- 概括本期所有角色的核心元素：种族/身份、风格调性、标志性意象等，3-8 个关键词\n"
+            "- 关键词之间用「、」分隔，输出成一行；不要写句子，不要解释\n"
+            "- 示例：狐妖、鬼灯、纸伞、雾隐山林\n"
+        )
+        atmosphere_field = '  "atmosphere": "本期元素关键词行",\n'
+        atmosphere_override = (
+            "\n## 氛围文案改为本期元素（覆盖上文关于氛围文案的规则）\n"
+            "- atmosphere 字段不再写氛围文案，改为一行 3-8 个关键词，用「、」分隔\n"
+            "- 概括本期所有角色的核心元素：种族/身份、风格调性、标志性意象等\n"
+        )
+    elif atmosphere_mode == "none":
+        atmosphere_rules = ""
+        atmosphere_field = ""
+        atmosphere_override = (
+            "\n## 不需要氛围文案（覆盖上文关于氛围文案的规则）\n"
+            "- 不要输出 atmosphere 字段；若模板要求该字段，填空字符串 \"\"\n"
+        )
+    else:
+        atmosphere_rules = (
+            "## 氛围文案规则（整个系列共用一段）\n"
+            "- 2-4句，诗意，有画面感\n"
+            "- 符合系列调性\n"
+            "- 适合小红书发文\n"
+        )
+        atmosphere_field = '  "atmosphere": "氛围文案",\n'
+        atmosphere_override = ""
+
+    names_block = ""
+    if character_names:
+        name_lines = "\n".join(
+            f"  - index {i + 1}：{n}" for i, n in enumerate(character_names)
+        )
+        names_block = (
+            "\n## 角色命名（用户已指定，请直接沿用）\n"
+            "- 以下角色的副题由用户指定，输出 JSON 时 subtitle 字段必须原样填入，不要另取、不要改写：\n"
+            f"{name_lines}\n"
+            "- 「副题规则」对这些已指定的角色不适用；氛围文案与标签需与这些命名和画面呼应\n"
+        )
+
     tpl = template if (template and template.strip()) else DEFAULT_PROMPT_TEMPLATE
     substitutions = {
         "{theme_block}": theme_block,
@@ -308,7 +382,16 @@ def build_prompt(
         "{lang_desc}": lang_desc,
         "{count_line}": count_line,
         "{series_name_field}": series_name_field,
+        "{names_block}": names_block,
+        "{atmosphere_rules}": atmosphere_rules,
+        "{atmosphere_field}": atmosphere_field,
     }
+    # 自定义模板可能没有 {names_block} 占位符：有角色名时追加到末尾，确保 AI 能看到
+    if names_block and "{names_block}" not in tpl:
+        tpl = tpl.rstrip() + "\n" + names_block
+    # 同理：自定义模板没有 {atmosphere_rules} 时，用覆盖说明告知 AI 新的文案模式
+    if atmosphere_override and "{atmosphere_rules}" not in tpl:
+        tpl = tpl.rstrip() + "\n" + atmosphere_override
     out = tpl
     for k, v in substitutions.items():
         out = out.replace(k, v)
@@ -692,6 +775,25 @@ def save_rename_outputs(
 # 一体化接口
 # ============================================================
 
+def _resolve_atmosphere(raw, mode: str) -> str:
+    """按文案模式整理 AI 返回的 atmosphere 字段。"""
+    if mode == "none":
+        return ""
+    if isinstance(raw, (list, tuple)):
+        text = "、".join(str(x).strip() for x in raw if str(x).strip())
+    else:
+        text = str(raw or "").strip()
+    if mode == "elements":
+        if not text:
+            return ""
+        # AI 可能用逗号/斜杠/空格分隔，统一成「、」；已带前缀则不重复加
+        text = re.sub(r"\s*[,，/｜|]\s*", "、", text)
+        if text.startswith(ELEMENTS_PREFIX):
+            return text
+        return ELEMENTS_PREFIX + text.lstrip("：:")
+    return text
+
+
 def generate_and_build(
     api_key: str,
     image_paths: list,
@@ -705,18 +807,27 @@ def generate_and_build(
     prompt_template: str | None = None,
     post_template: str | None = None,
     default_tags: list | None = None,
+    use_filename_as_name: bool = False,
+    atmosphere_mode: str = "atmosphere",
 ) -> dict:
     """调 API + 构建输出，不执行文件操作。
     provider: 'gemini' | 'openai'
     prompt_template: 可选自定义 AI 命名 Prompt 模板（空 → 默认）
     post_template:   可选自定义小红书文案模板（空 → DEFAULT_POST_TEMPLATE）
     default_tags:    可选自定义默认标签列表（None → DEFAULT_POST_TAGS）
+    use_filename_as_name: True 时沿用图片文件名作为角色名（副题），AI 只负责系列名/文案/标签
+    atmosphere_mode: 'atmosphere' 氛围文案 | 'elements' 本期元素关键词行 | 'none' 留空
     返回: {series_name, characters, outputs, raw}
     """
+    character_names = (
+        [character_name_from_path(p) for p in image_paths] if use_filename_as_name else None
+    )
     prompt = build_prompt(
         date, series, tone, auto_series, theme_hint,
         image_count=len(image_paths),
         template=prompt_template,
+        character_names=character_names,
+        atmosphere_mode=atmosphere_mode,
     )
     spec = PROVIDERS.get(provider) or PROVIDERS["gemini"]
     data = spec["call"](api_key, model, prompt, image_paths)
@@ -724,12 +835,23 @@ def generate_and_build(
     final_series = data.get("series_name", series) if auto_series else series
     characters = data.get("characters", [])
 
+    if character_names:
+        # 无论 AI 是否听话，副题一律以文件名为准；条目数不足时补齐，超出时截断
+        characters = [dict(ch) if isinstance(ch, dict) else {} for ch in characters]
+        characters = characters[:len(character_names)]
+        while len(characters) < len(character_names):
+            characters.append({"index": len(characters) + 1})
+        for i, name in enumerate(character_names):
+            characters[i]["subtitle"] = name
+
+    atmosphere = _resolve_atmosphere(data.get("atmosphere", ""), atmosphere_mode)
+
     outputs = build_outputs(
         date=date,
         series=final_series,
         characters=characters,
         image_paths=image_paths,
-        atmosphere=data.get("atmosphere", ""),
+        atmosphere=atmosphere,
         emoji=data.get("emoji", "✨"),
         tags=data.get("tags", []),
         post_template=post_template,

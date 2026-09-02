@@ -223,6 +223,8 @@ class WatermarkConfig:
         self.last_used_directory = None
         self.save_directory = None              # 水印输出目录（output_panel 专用）
         self.rename_save_directory = None       # AI 重命名/文案保存目录（rename_panel 专用）
+        self.rename_use_filename_as_name = False  # AI 重命名：沿用文件名作角色名（副题）
+        self.rename_atmosphere_mode = 'atmosphere'  # 文案模式: atmosphere / elements / none
         self.last_watermark_directory = None
         self.last_images_directory = None
         self.last_stretch = False
@@ -275,6 +277,8 @@ class WatermarkConfig:
                     self.last_used_directory = config.get('last_used_directory')
                     self.save_directory = config.get('save_directory')
                     self.rename_save_directory = config.get('rename_save_directory')
+                    self.rename_use_filename_as_name = config.get('rename_use_filename_as_name', False)
+                    self.rename_atmosphere_mode = config.get('rename_atmosphere_mode', 'atmosphere')
                     self.last_watermark_directory = config.get('last_watermark_directory')
                     self.last_images_directory = config.get('last_images_directory')
                     self.last_stretch = config.get('last_stretch', False)
@@ -340,6 +344,8 @@ class WatermarkConfig:
                 'last_used_directory': self.last_used_directory,
                 'save_directory': self.save_directory,
                 'rename_save_directory': self.rename_save_directory,
+                'rename_use_filename_as_name': self.rename_use_filename_as_name,
+                'rename_atmosphere_mode': self.rename_atmosphere_mode,
                 'last_watermark_directory': self.last_watermark_directory,
                 'last_images_directory': self.last_images_directory,
                 'last_stretch': stretch,
